@@ -9,6 +9,9 @@ Recreation of assets from the Tiger 1999 Pokedex (Generation 1).
 
 *Work in progress*
 
+## Gallery
+
+![](assets/gallery-2.png)
 
 ## Acknowledgements
 

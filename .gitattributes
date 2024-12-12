@@ -1,0 +1,10 @@
+# Set the default behavior, in case people don't have core.autocrlf set.
+* text=auto
+
+# Declare files that should be treated as text with explicit line endings
+# https://en.wikipedia.org/wiki/Newline#Representation
+*.csv text eol=lf
+
+# Denote files that are truly binary (macro for -text -diff)
+*.jxl binary
+*.png binary

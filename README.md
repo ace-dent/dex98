@@ -2,6 +2,13 @@
 
 Recreation of assets from the Tiger 1999 Pokedex (Generation 1).
 
+---
+<br>
+
+## Introduction
+
+*Work in progress*
+
 
 ## Acknowledgements
 

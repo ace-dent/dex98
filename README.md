@@ -17,7 +17,7 @@ Recreation of assets from the Tiger 1998 Pokedex (Generation 1).
 
 Image wrangling with ImageMagick, compressed with Oxipng and metadata added with ExifTool.
 
-Special thanks to @crait for the original idea. 
+Special thanks to @crait for the original [idea](https://community.arduboy.com/t/pokedex-for-arduboy/12469/16). 
 
 
 ## Legal
@@ -29,5 +29,7 @@ Produced by Andrew C.E. Dent and dedicated to the Public Domain (CC0 – free to
 All trademarks and copyrighted material are the property of their respective owners, including:  
 &emsp; Tiger Electronics, Ltd.  
 &emsp; Hasbro, Inc.  
-&emsp; Nintendo, CREATURES, GAME FREAK.  
-&emsp; Nintendo Co., Ltd.
+&emsp; Nintendo Co., Ltd.  
+&emsp; Creatures Inc.  
+&emsp; GAME FREAK Inc.
+

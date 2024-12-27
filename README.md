@@ -26,7 +26,7 @@ This project is intended to recreate and archive work based on photographs of an
 
 Produced by Andrew C.E. Dent and dedicated to the Public Domain (CC0 – free to use). Giving attribution is not required but always appreciated! Please read the separate `LICENSE` file.
 
-All trademarks and copyrighted material are the property of their respective owners, including:  
+All trademarks are the property of their respective owners, including:  
 &emsp; Tiger Electronics, Ltd.  
 &emsp; Hasbro, Inc.  
 &emsp; Nintendo Co., Ltd.  

@@ -9,6 +9,8 @@ Recreation of assets from the Tiger 1998 Pokedex (Generation 1).
 
 *Work in progress*
 
+I welcome feedback and suggestions, to continue improving the project for everyone. It really motivates me that people enjoy my work. Please keep the data gnomes fed with a [star](https://github.com/ace-dent/dex-1998/stargazers)! ⭐️
+
 ## Gallery
 
 ![](assets/gallery-2.png)

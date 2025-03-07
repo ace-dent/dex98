@@ -13,7 +13,7 @@ I welcome feedback and suggestions, to continue improving the project for everyo
 
 ## Gallery
 
-![](assets/gallery-2.png)
+<img src="docs/gallery/001-Bulbasaur-0.png" alt="" width="165" height="160"/>
 
 ## Acknowledgements
 

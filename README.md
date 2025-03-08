@@ -1,4 +1,4 @@
-# 'dex 1998
+# 'dex 98
 
 Recreation of assets from the Tiger 1998 Pokedex (Generation 1).
 
@@ -13,7 +13,8 @@ I welcome feedback and suggestions, to continue improving the project for everyo
 
 ## Gallery
 
-<img src="docs/gallery/001-Bulbasaur-0.png" alt="" width="165" height="160"/>
+![](docs/gallery/001-Bulbasaur-0.png) ![](docs/gallery/002-Ivysaur-0.png) ![](docs/gallery/003-Venusaur-0.png) 
+
 
 ## Acknowledgements
 

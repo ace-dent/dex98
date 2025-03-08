@@ -135,9 +135,9 @@ while (( "$#" )); do
   #   then allow reductions (other bit depths and color formats)
   for reductions in '-q --nx' '-q'; do
     for zc_level in {0..12}; do
-      oxipng "${reductions}" --zc "${zc_level}" --filters 0-9 "${png_file}"
+      oxipng ${reductions} --zc ${zc_level} --filters 0-9 "${png_file}"
     done
-    oxipng "${reductions}" --zopfli --zi 200 --filters 0-9 "${png_file}"
+    oxipng ${reductions} --zopfli --zi 200 --filters 0-9 "${png_file}"
   done
 
   # Create the Portable Bit Map (PBM) file
@@ -153,17 +153,11 @@ while (( "$#" )); do
     -execute \
     "${png_file}" -q -overwrite_original -fast1 \
       -PNG:PixelsPerUnitX=909 -PNG:PixelsPerUnitY=1000 \
+      -xresolution=23 -yresolution=25 -resolutionunit=inches \
     -execute \
     "${pbm_file}" -q -overwrite_original -fast5 \
       -Comment="${img_title} - '${project}" # Primary pbm metadata (single text line in header)
   printf '\n# %s' "${copyright}" "${license}" >> "${pbm_file}" # Extra pbm metadata appended to the plain text file
-
-  # By adding image pixel resolution, we can account for non square-pixels,
-  #  alhtough most software only applies this when printing.
-  # exiftool -PNG:PixelsPerUnitX=909 -PNG:PixelsPerUnitY=1000 FILE.PNG
-  # TODO: Investigate overhead of including an EXIF chunk :
-  # exiftool -xresolution=23 -yresolution=25 -resolutionunit=inches FILE.PNG
-
 
   # Remove temporary file
   rm -f "${tmp_file}"

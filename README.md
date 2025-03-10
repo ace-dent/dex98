@@ -13,14 +13,17 @@ I welcome feedback and suggestions, to continue improving the project for everyo
 
 ## Gallery
 
-![](docs/gallery/001-Bulbasaur-0.png) ![](docs/gallery/002-Ivysaur-0.png) ![](docs/gallery/003-Venusaur-0.png) 
+![](docs/gallery/001-Bulbasaur-0.png) ![](docs/gallery/004-Charmander-0.png)
+
+## Methods
+
 
 
 ## Acknowledgements
 
 Image wrangling with ImageMagick, compressed with Oxipng and metadata added with ExifTool.
 
-Special thanks to @crait for the original [idea](https://community.arduboy.com/t/pokedex-for-arduboy/12469/16). 
+Special thanks to @crait for the original [idea](https://community.arduboy.com/t/pokedex-for-arduboy/12469/16) and valuable discussions.  
 
 
 ## Legal

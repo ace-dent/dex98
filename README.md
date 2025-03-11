@@ -13,7 +13,7 @@ I welcome feedback and suggestions, to continue improving the project for everyo
 
 ## Gallery
 
-![](docs/gallery/001-Bulbasaur-0.png) ![](docs/gallery/004-Charmander-0.png)
+![](docs/gallery/001-Bulbasaur-0.png) ![](docs/gallery/004-Charmander-0.png) ![](docs/gallery/007-Squirtle-0.png)
 
 ## Methods
 

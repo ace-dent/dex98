@@ -9,7 +9,7 @@ Track progress and outstanding tasks.
 | Select captured images      |   151   | 100%            |
 | Verify and name images      |   17    | 11%             |
 | Image correction            |   9     | 6%              |
-| Process and upload sprites  |   6     | 4%              |
+| Process and upload sprites  |   9     | 6%              |
 | Create gallery artwork      |   0     | 0%              |
 
 

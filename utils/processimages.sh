@@ -68,21 +68,22 @@ while (( "$#" )); do
   echo " > ${img_name}"
 
   # Split the hyphenated string into separate elements
-  IFS='-' read -r dex_number dex_name dex_sprite <<< "${img_name}"
-  # Basic validation of the details
-  if ! [[ "$dex_number" =~ ^[0-9]{3}$ ]]; then
-    echo "Invalid 'dex number. Expected 3 digits with leading zeroes."
+  IFS='-' read -r mon_number mon_name mon_sprite <<< "${img_name}"
+  # Validate the parsed details
+  if ! [[ "$mon_number" =~ ^[0-9]{3}$ ]] \
+      || (( 10#"${mon_number}" < 1 || 10#"${mon_number}" > 151 )); then
+    echo "Invalid number. Expected between 001 and 151, with leading zeroes."
     exit
   fi
-  if [[ ! "$dex_name" =~ ^[A-Z] || ${#dex_name} -lt 3 ]]; then
-    echo "Invalid 'dex name. Expected TitleCase and at least 3 characters."
+  if [[ ! "$mon_name" =~ ^[A-Z] || ${#mon_name} -lt 3 ]]; then
+    echo "Invalid name. Expected TitleCase and at least 3 characters."
     exit
   fi
-  if [[ ! "$dex_sprite" =~ ^[0-2]$ ]]; then
-    echo "Invalid 'dex sprite number. Expected 0, 1, or 2."
+  if [[ ! "$mon_sprite" =~ ^[0-2]$ ]]; then
+    echo "Invalid sprite number. Expected 0, 1, or 2 (rest, pose, attack)."
     exit
   fi
-  img_title="${dex_number} ${dex_name} (${dex_sprite})" # e.g. `006 Dragon (1)`
+  img_title="${mon_number} ${mon_name} (${mon_sprite})" # e.g. `006 Dragon (1)`
 
 
   # Produce images
@@ -117,7 +118,7 @@ while (( "$#" )); do
   #  This is likely to be changed in the future, but useful placeholder
   art_file="${art_dir%/*}/docs/gallery/${img_name}.png"
   magick "${png_file}" -filter point -resize 330x320\! \
-    +level-colors '#001830','#BFBCB6' \
+    +level-colors "#001830,#BFBCB6" \
     \( -size 11x10 canvas:none -fill none -stroke '#CFCDC7' -strokewidth 1 \
       -draw "line 10,0 10,10" -draw "line 0,9 11,9" -write mpr:tile +delete \) \
     \( -size 330x320 tile:mpr:tile \) \

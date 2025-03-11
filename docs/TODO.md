@@ -6,7 +6,7 @@ Track progress and outstanding tasks.
 
 | Task                        |   Done  | Complete        |
 | :-------------------------- | ------: | --------------: |
-| Select captured images      |   145   | 97%             |
+| Select captured images      |   151   | 100%            |
 | Verify and name images      |   17    | 11%             |
 | Image correction            |   9     | 6%              |
 | Process and upload sprites  |   6     | 4%              |

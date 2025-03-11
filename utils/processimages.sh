@@ -52,11 +52,11 @@ while (( "$#" )); do
   fi
   file_size=$(stat -f%z "$1")
   if (( file_size < 102400 || file_size > 1048576 )); then
-    echo "File size is outside the allowed range (100 KiB - 1 MiB)."
+    echo 'File size is outside the allowed range (100 KiB - 1 MiB).'
     exit
   fi
   if ! oxipng -q --pretend --opt 0 "$1"; then
-    echo "Not a valid PNG file. Check for image format issues."
+    echo 'Not a valid PNG file. Check for image format issues.'
     exit
   fi
 
@@ -72,15 +72,15 @@ while (( "$#" )); do
   # Validate the parsed details
   if ! [[ "$mon_number" =~ ^[0-9]{3}$ ]] \
       || (( 10#"${mon_number}" < 1 || 10#"${mon_number}" > 151 )); then
-    echo "Invalid number. Expected between 001 and 151, with leading zeroes."
+    echo 'Invalid number. Expected between 001 and 151, with leading zeroes.'
     exit
   fi
   if [[ ! "$mon_name" =~ ^[A-Z] || ${#mon_name} -lt 3 ]]; then
-    echo "Invalid name. Expected TitleCase and at least 3 characters."
+    echo 'Invalid name. Expected TitleCase and at least 3 characters.'
     exit
   fi
   if [[ ! "$mon_sprite" =~ ^[0-2]$ ]]; then
-    echo "Invalid sprite number. Expected 0, 1, or 2 (rest, pose, attack)."
+    echo 'Invalid sprite number. Expected 0, 1, or 2 (rest, pose, attack).'
     exit
   fi
   img_title="${mon_number} ${mon_name} (${mon_sprite})" # e.g. `006 Dragon (1)`
@@ -117,21 +117,21 @@ while (( "$#" )); do
   # Create the gallery 'art' image
   #  This is likely to be changed in the future, but useful placeholder
   art_file="${art_dir%/*}/docs/gallery/${img_name}.png"
-  magick "${png_file}" -filter point -resize 330x320\! \
-    +level-colors "#001830,#BFBCB6" \
-    \( -size 11x10 canvas:none -fill none -stroke '#CFCDC7' -strokewidth 1 \
-      -draw "line 10,0 10,10" -draw "line 0,9 11,9" -write mpr:tile +delete \) \
-    \( -size 330x320 tile:mpr:tile \) \
-    -compose over -composite \
-    -sample 400% \
-    -negate -morphology Dilate Disk:1.5 -negate \
-    -filter Lanczos -resize 165x160 \
-    -dither None -colors 256 -define png:include-chunk=none \
-    "${art_file}"
+  # magick "${png_file}" -filter point -resize 330x320\! \
+  #   +level-colors "#001830,#BFBCB6" \
+  #   \( -size 11x10 canvas:none -fill none -stroke '#CFCDC7' -strokewidth 1 \
+  #     -draw "line 10,0 10,10" -draw "line 0,9 11,9" -write mpr:tile +delete \) \
+  #   \( -size 330x320 tile:mpr:tile \) \
+  #   -compose over -composite \
+  #   -sample 400% \
+  #   -negate -morphology Dilate Disk:1.5 -negate \
+  #   -filter Lanczos -resize 165x160 \
+  #   -dither None -colors 256 -define png:include-chunk=none \
+  #   "${art_file}"
 
 
   # Optimize PNG image compression, before adding custom metadata
-  oxipng -q --nx --strip all "${png_file}" "${art_file}"
+  oxipng -q --nx --strip all "${png_file}"  # "${art_file}"
   # First try to optimize with no reductions (8bpp, grayscale preferred)
   #   then allow reductions (other bit depths and color formats)
   for reductions in '-q --nx' '-q'; do
@@ -148,7 +148,7 @@ while (( "$#" )); do
 
   # Add metadata to png files first and then pbm file
   exiftool \
-    "${png_file}" "${art_file}" -q -overwrite_original -fast1 \
+    "${png_file}" -q -overwrite_original -fast1 \
       -Title="#${img_title} - '${project}" \
       -Copyright="${copyright_short} ${license}" \
     -execute \

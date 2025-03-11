@@ -8,8 +8,8 @@ Track progress and outstanding tasks.
 | :-------------------------- | ------: | --------------: |
 | Select captured images      |   151   | 100%            |
 | Verify and name images      |   17    | 11%             |
-| Image correction            |   9     | 6%              |
-| Process and upload sprites  |   9     | 6%              |
+| Image correction            |   15    | 10%             |
+| Process and upload sprites  |   15    | 10%             |
 | Create gallery artwork      |   0     | 0%              |
 
 

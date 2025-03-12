@@ -51,8 +51,8 @@ while (( "$#" )); do
     exit
   fi
   file_size=$(stat -f%z "$1")
-  if (( file_size < 102400 || file_size > 1048576 )); then
-    echo 'File size is outside the allowed range (100 KiB - 1 MiB).'
+  if (( file_size < 10240 || file_size > 1048576 )); then
+    echo 'File size is outside the allowed range (10 KiB - 1 MiB).'
     exit
   fi
   if ! oxipng -q --pretend --opt 0 "$1"; then
@@ -115,30 +115,25 @@ while (( "$#" )); do
     -dither FloydSteinberg -colors 256 -layers Optimize "${diff_file}".gif
 
   # Create the gallery 'art' image
-  #  This is likely to be changed in the future, but useful placeholder
+  #  This is likely to be changed in the future
   art_file="${art_dir%/*}/docs/gallery/${img_name}.png"
-  # magick "${png_file}" -filter point -resize 330x320\! \
-  #   +level-colors "#001830,#BFBCB6" \
-  #   \( -size 11x10 canvas:none -fill none -stroke '#CFCDC7' -strokewidth 1 \
-  #     -draw "line 10,0 10,10" -draw "line 0,9 11,9" -write mpr:tile +delete \) \
-  #   \( -size 330x320 tile:mpr:tile \) \
-  #   -compose over -composite \
-  #   -sample 400% \
-  #   -negate -morphology Dilate Disk:1.5 -negate \
-  #   -filter Lanczos -resize 165x160 \
-  #   -dither None -colors 256 -define png:include-chunk=none \
-  #   "${art_file}"
-
+  magick "${png_file}" -alpha off -sample 90x96 \
+    +level-colors "#001830,#BFBCB6" \
+    -bordercolor "#CFCDC7" -border 3 \
+    -define png:bit-depth=8 -define png:include-chunk=none \
+    "${art_file}"
 
   # Optimize PNG image compression, before adding custom metadata
-  oxipng -q --nx --strip all "${png_file}"  # "${art_file}"
-  # First try to optimize with no reductions (8bpp, grayscale preferred)
-  #   then allow reductions (other bit depths and color formats)
-  for reductions in '-q --nx' '-q'; do
-    for zc_level in {0..12}; do
-      oxipng ${reductions} --zc ${zc_level} --filters 0-9 "${png_file}"
+  for file in "${png_file}" "${art_file}"; do
+    oxipng -q --nx --strip all "${file}"
+    # First try to optimize with no reductions (8bpp, grayscale preferred)
+    #   then allow reductions (other bit depths and color formats)
+    for reductions in '-q --nx' '-q'; do
+      for zc_level in {0..12}; do
+        oxipng ${reductions} --zc ${zc_level} --filters 0-9 "${file}"
+      done
+      oxipng ${reductions} --zopfli --zi 200 --filters 0-9 "${file}"
     done
-    oxipng ${reductions} --zopfli --zi 200 --filters 0-9 "${png_file}"
   done
 
   # Create the Portable Bit Map (PBM) file
@@ -148,7 +143,7 @@ while (( "$#" )); do
 
   # Add metadata to png files first and then pbm file
   exiftool \
-    "${png_file}" -q -overwrite_original -fast1 \
+    "${png_file}" "${art_file}" -q -overwrite_original -fast1 \
       -Title="#${img_title} - '${project}" \
       -Copyright="${copyright_short} ${license}" \
     -execute \

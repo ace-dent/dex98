@@ -13,7 +13,12 @@ I welcome feedback and suggestions, to continue improving the project for everyo
 
 ## Gallery
 
-![](docs/gallery/001-Bulbasaur-0.png) ![](docs/gallery/004-Charmander-0.png) ![](docs/gallery/007-Squirtle-0.png)
+![](docs/gallery/001-Bulbasaur-0.png)![](docs/gallery/002-Ivysaur-0.png)![](docs/gallery/003-Venusaur-0.png)  
+![](docs/gallery/004-Charmander-0.png)![](docs/gallery/005-Charmeleon-0.png)![](docs/gallery/006-Charizard-0.png)  
+![](docs/gallery/007-Squirtle-0.png)![](docs/gallery/008-Wartortle-0.png)![](docs/gallery/009-Blastoise-0.png)  
+![](docs/gallery/010-Caterpie-0.png)![](docs/gallery/011-Metapod-0.png)![](docs/gallery/012-Butterfree-0.png)  
+![](docs/gallery/013-Weedle-0.png)![](docs/gallery/014-Kakuna-0.png)![](docs/gallery/015-Beedrill-0.png)  
+
 
 ## Methods
 

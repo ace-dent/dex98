@@ -13,11 +13,9 @@ I welcome feedback and suggestions, to continue improving the project for everyo
 
 ## Gallery
 
-![](docs/gallery/001-Bulbasaur-0.png)![](docs/gallery/002-Ivysaur-0.png)![](docs/gallery/003-Venusaur-0.png)  
-![](docs/gallery/004-Charmander-0.png)![](docs/gallery/005-Charmeleon-0.png)![](docs/gallery/006-Charizard-0.png)  
-![](docs/gallery/007-Squirtle-0.png)![](docs/gallery/008-Wartortle-0.png)![](docs/gallery/009-Blastoise-0.png)  
-![](docs/gallery/010-Caterpie-0.png)![](docs/gallery/011-Metapod-0.png)![](docs/gallery/012-Butterfree-0.png)  
-![](docs/gallery/013-Weedle-0.png)![](docs/gallery/014-Kakuna-0.png)![](docs/gallery/015-Beedrill-0.png)  
+![](docs/gallery/001-Bulbasaur.gif)![](docs/gallery/002-Ivysaur.gif)![](docs/gallery/003-Venusaur.gif)![](docs/gallery/004-Charmander.gif)![](docs/gallery/005-Charmeleon.gif)![](docs/gallery/006-Charizard.gif)  
+![](docs/gallery/007-Squirtle.gif)![](docs/gallery/008-Wartortle.gif)![](docs/gallery/009-Blastoise.gif)![](docs/gallery/010-Caterpie.gif)![](docs/gallery/011-Metapod.gif)![](docs/gallery/012-Butterfree.gif)  
+![](docs/gallery/013-Weedle.gif)![](docs/gallery/014-Kakuna.gif)![](docs/gallery/015-Beedrill.gif)
 
 
 ## Methods

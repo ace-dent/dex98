@@ -14,8 +14,8 @@ for bin in 'magick' 'exiftool' 'oxipng'; do
     exit
   fi
 done
-min_version="9.1.3" # Check Oxipng v9.1.3 or greater is available (for --zi)
-this_version=$(oxipng --version | head -n1 | awk '{print $NF}')
+min_version='9.1.3' # Check Oxipng v9.1.3 or greater is available (for --zi)
+this_version="$(oxipng --version | head -n1 | awk '{print $NF}')"
 if [[ $(printf '%s\n' "${min_version}" "${this_version}" \
     | sort -V | head -n1) != "${min_version}" ]]; then
   echo "Error: Oxipng v${this_version}; upgrade to at least v${min_version}."
@@ -37,7 +37,8 @@ readonly license='https://creativecommons.org/publicdomain/zero/1.0/'
 # Setup file paths
 base_dir=$(realpath "$(dirname "${BASH_SOURCE[0]}")")
 art_dir=$(realpath "${base_dir}/../art")
-background_img="${base_dir}/background_img.png"
+readonly base_dir art_dir
+img_background="${base_dir}/img_background.png"
 
 echo ''
 echo 'Processing images...'
@@ -93,7 +94,7 @@ while (( "$#" )); do
   tmp_file="${art_dir}/png/${img_name}-temp.png"
   magick "$1" -negate -morphology Dilate Disk:4 -morphology Erode Disk:2 \
       -negate -sample 480x512 "${tmp_file}"
-  magick -colorspace gray -depth 8 "${tmp_file}" "${background_img}" \
+  magick -colorspace gray -depth 8 "${tmp_file}" "${img_background}" \
     -compose Mathematics -define compose:args=1,-0.8,0,0.5 -composite \
     -auto-threshold OTSU -alpha off -sample 30x32 \
     -define png:color-type=0 -define png:bit-depth=8 -define png:include-chunk=none \
@@ -126,8 +127,8 @@ while (( "$#" )); do
   # Optimize PNG image compression, before adding custom metadata
   for file in "${png_file}" "${art_file}"; do
     oxipng -q --nx --strip all "${file}"
-    # First try to optimize with no reductions (8bpp, grayscale preferred)
-    #   then allow reductions (other bit depths and color formats)
+    # First try to optimize with no reductions (8bpp, grayscale is preferred)
+    #   then allow reductions (lower bit depths and other color modes)
     for reductions in '-q --nx' '-q'; do
       for zc_level in {0..12}; do
         oxipng ${reductions} --zc ${zc_level} --filters 0-9 "${file}"

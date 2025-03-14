@@ -7,10 +7,10 @@ Track progress and outstanding tasks.
 | Task                        |   Done  | Complete        |
 | :-------------------------- | ------: | --------------: |
 | Select captured images      |   151   | 100%            |
-| Verify and name images      |   17    | 11%             |
+| Verify and name images      |   27    | 18%             |
 | Image correction            |   15    | 10%             |
 | Process and upload sprites  |   15    | 10%             |
-| Create gallery artwork      |   0     | 0%              |
+| Create gallery artwork      |   15    | 10%             |
 
 
 ## Data

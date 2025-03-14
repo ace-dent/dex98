@@ -123,6 +123,27 @@ while (( "$#" )); do
     -bordercolor "#CFCDC7" -border 3 \
     -define png:bit-depth=8 -define png:include-chunk=none \
     "${art_file}"
+  # Create animated GIF when all 3 sprites are available
+  if [[ "${mon_sprite}" = 2 ]]; then
+    spr_base="${art_dir%/*}/docs/gallery/${mon_number}-${mon_name}"
+    if [[ -f "${spr_base}-0.png" && -f "${spr_base}-1.png" && -f "${spr_base}-2.png" ]]; then
+      magick -delay 49 -loop 0 \
+        \( "${spr_base}-0.png" -duplicate 2 \) \
+        \( "${spr_base}-0.png" "${spr_base}-1.png" -write mpr:posing_cycle +delete \) \
+        \( "${spr_base}-0.png" "${spr_base}-2.png" -write mpr:attack_cycle +delete \) \
+        mpr:posing_cycle \
+        mpr:posing_cycle \
+        mpr:attack_cycle \
+        mpr:attack_cycle \
+        mpr:posing_cycle \
+        mpr:posing_cycle \
+        -sample 200% \
+        -dither None -alpha off -colors 4 -layers RemoveDups -layers OptimizePlus \
+        "${spr_base}.gif"
+      exiftool "${spr_base}.gif" -q -overwrite_original -fast5 \
+        -Comment="#${mon_number} ${mon_name} - '${project} - ${copyright} ${license}"
+    fi
+  fi
 
   # Optimize PNG image compression, before adding custom metadata
   for file in "${png_file}" "${art_file}"; do

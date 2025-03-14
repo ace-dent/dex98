@@ -23,7 +23,7 @@ if [[ $(printf '%s\n' "${min_version}" "${this_version}" \
 fi
 # Check for at least one input file
 if [[ -z "$1" ]]; then
-  echo 'Missing filename. Provide at least one image to process.'
+  echo 'Missing filename. Provide at least one PNG image to process.'
   exit
 fi
 
@@ -39,10 +39,10 @@ base_dir=$(realpath "$(dirname "${BASH_SOURCE[0]}")")
 art_dir=$(realpath "${base_dir}/../art")
 readonly base_dir art_dir
 # Check support files are present
-art_colors="${base_dir}/art_colormap.tsv"
+dex_LUT="${base_dir}/dex_table.tsv"
 img_background="${base_dir}/img_background.png"
-readonly art_colors img_background
-for file in "${art_colors}" "${img_background}"; do
+readonly dex_LUT img_background
+for file in "${dex_LUT}" "${img_background}"; do
   if [[ ! -f "${file}" ]]; then
     echo "Support file '${file}' is missing."
     exit
@@ -78,17 +78,32 @@ while (( "$#" )); do
 
   # Split the hyphenated string into separate elements
   IFS='-' read -r mon_number mon_name mon_sprite <<< "${img_name}"
-  # Validate the parsed details
-  if ! [[ "$mon_number" =~ ^[0-9]{3}$ ]] \
+  # Validate the 'mon number first
+  if ! [[ "${mon_number}" =~ ^[0-9]{3}$ ]] \
       || (( 10#"${mon_number}" < 1 || 10#"${mon_number}" > 151 )); then
     echo 'Invalid number. Expected between 001 and 151, with leading zeroes.'
     exit
   fi
-  if [[ ! "$mon_name" =~ ^[A-Z] || ${#mon_name} -lt 3 ]]; then
+  if [[ ! "${mon_number}" = "$( basename "${1%/*}" )" ]] ; then
+    echo 'Invalid number. File and its directory name mismatch.'
+    exit
+  fi
+  # Look up properties for processing this 'mon (used later for gallery artwork)
+  line_number=$(( 10#${mon_number} + 1 ))
+  row=$(sed -n "${line_number}p" "${dex_LUT}")
+  IFS=$'\t' read -r _ dex_name mon_palette _ _ _ _ art_black_point art_white_point art_border \
+    <<< "${row}"
+  dex_name="$(echo "${dex_name}" | sed 's/[[:space:]]*$//')" # Remove trailing spaces
+  # Validate the other parsed details
+  if [[ ! "${mon_name}" =~ ^[A-Z] || ${#mon_name} -lt 3 ]]; then
     echo 'Invalid name. Expected TitleCase and at least 3 characters.'
     exit
   fi
-  if [[ ! "$mon_sprite" =~ ^[0-2]$ ]]; then
+  if [[ ! "${mon_name}" =  "${dex_name}" ]]; then
+    echo "Invalid name. '${mon_name}' does not match expected '${dex_name}'."
+    exit
+  fi
+  if [[ ! "${mon_sprite}" =~ ^[0-2]$ ]]; then
     echo 'Invalid sprite number. Expected 0, 1, or 2 (rest, pose, attack).'
     exit
   fi
@@ -119,22 +134,15 @@ while (( "$#" )); do
   # Flicker animation for comparison
   magick -delay 50 -loop 0 \
     \( "${tmp_file}" -modulate 100,30,100 \) \
-    \( "${png_file}" +level-colors '#111','#888' \) \
+    \( "${png_file}" +level-colors "#111,#888" \) \
     -sample 480x512 -gravity center \
     -dither FloydSteinberg -colors 256 -layers Optimize "${diff_file}".gif
 
-  # Create the gallery 'art' image
-  #  This is likely to be changed in the future
+  # Create the gallery art image
   art_file="${art_dir%/*}/docs/gallery/${img_name}.png"
-  # Extract color parameters for processing
-  line_number=$(( 10#${mon_number} + 1 ))
-  row=$(sed -n "${line_number}p" "$art_colors")
-  IFS=$'\t' read -r _ _ mon_palette _ _ _ _ black_point white_point border \
-    <<< "$row"
-  # Generate gallery image
   magick "${png_file}" -alpha off -sample 90x96 \
-    +level-colors "${black_point},${white_point}" \
-    -bordercolor "${border}" -border 4 \
+    +level-colors "${art_black_point},${art_white_point}" \
+    -bordercolor "${art_border}" -border 4 \
     -define png:bit-depth=8 -define png:include-chunk=none \
     "${art_file}"
   # Create animated GIF when all 3 sprites are available
@@ -192,7 +200,7 @@ while (( "$#" )); do
   printf '\n# %s' "${copyright}" "${license}" >> "${pbm_file}" # Extra pbm metadata appended to the plain text file
 
   # Finished processing
-  emoji=$(echo "${mon_palette:0:1}" | sed 's/❤/❤️ /')
+  emoji=$(echo "${mon_palette:0:1}" | sed 's/❤/❤️ /') # Fix unicode for red hearts
   echo " - ${emoji} ${img_name}"
   # Remove temporary file
   rm -f "${tmp_file}"

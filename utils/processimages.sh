@@ -65,7 +65,7 @@ while (( "$#" )); do
     echo 'File size is outside the allowed range (10 KiB - 1 MiB).'
     exit
   fi
-  if ! oxipng -q --pretend --opt 0 "$1"; then
+  if ! oxipng -q --pretend --nx --nz "$1"; then
     echo 'Not a valid PNG file. Check for image format issues.'
     exit
   fi
@@ -75,7 +75,6 @@ while (( "$#" )); do
   img_name="${img_name/_corrected/}" # Remove possible '_corrected' suffix
   # Sanitize the string but accept edge cases, e.g. "Mr. Mime", "Farfetch'd"
   img_name="$(echo "$img_name" | tr -c "a-zA-Z0-9'. -\n" '?')"
-
   # Split the hyphenated string into separate elements
   IFS='-' read -r mon_number mon_name mon_sprite <<< "${img_name}"
   # Validate the 'mon number first
@@ -88,10 +87,10 @@ while (( "$#" )); do
     echo 'Invalid number. File and its directory name mismatch.'
     exit
   fi
-  # Look up properties for processing this 'mon (used later for gallery artwork)
+  # Look up properties for this 'mon (also used later for gallery artwork)
   line_number=$(( 10#${mon_number} + 1 ))
   row=$(sed -n "${line_number}p" "${dex_LUT}")
-  IFS=$'\t' read -r _ dex_name mon_palette _ _ _ _ art_black_point art_white_point art_border \
+  IFS=$'\t' read -r _ dex_name mon_palette _ _ _ _ art_black art_white art_border \
     <<< "${row}"
   dex_name="$(echo "${dex_name}" | sed 's/[[:space:]]*$//')" # Remove trailing spaces
   # Validate the other parsed details
@@ -124,7 +123,7 @@ while (( "$#" )); do
     "${png_file}"
 
 
-  # Create 'diff' images, for ultimate visual Quality Assurance
+  # Create 'diff' images for manual inspection and Quality Control
   diff_file="${art_dir}/png/diff.${img_name}"
   magick \
     \( "${tmp_file}" -colorspace gray -depth 8 \) \
@@ -141,7 +140,7 @@ while (( "$#" )); do
   # Create the gallery art image
   art_file="${art_dir%/*}/docs/gallery/${img_name}.png"
   magick "${png_file}" -alpha off -sample 90x96 \
-    +level-colors "${art_black_point},${art_white_point}" \
+    +level-colors "${art_black},${art_white}" \
     -bordercolor "${art_border}" -border 4 \
     -define png:bit-depth=8 -define png:include-chunk=none \
     "${art_file}"
@@ -150,18 +149,27 @@ while (( "$#" )); do
     spr_base="${art_dir%/*}/docs/gallery/${mon_number}-${mon_name}"
     if [[ -f "${spr_base}-0.png" && -f "${spr_base}-1.png" && -f "${spr_base}-2.png" ]]; then
       magick -delay 49 -loop 0 \
-        \( "${spr_base}-0.png" -duplicate 2 \) \
-        \( "${spr_base}-0.png" "${spr_base}-1.png" -write mpr:posing_cycle +delete \) \
-        \( "${spr_base}-0.png" "${spr_base}-2.png" -write mpr:attack_cycle +delete \) \
-        mpr:posing_cycle \
-        mpr:posing_cycle \
-        mpr:attack_cycle \
-        mpr:attack_cycle \
-        mpr:posing_cycle \
-        mpr:posing_cycle \
+        \( "${spr_base}-0.png" "${spr_base}-1.png" \
+          -write mpr:posing_cycle -delete 0--1 \) \
+        \( "${spr_base}-0.png" "${spr_base}-2.png" \
+          -write mpr:attack_cycle -delete 0--1 \) \
+        \
+        \( "${spr_base}-0.png" -duplicate 3 \) \
+        mpr:posing_cycle mpr:posing_cycle \
+        mpr:attack_cycle mpr:attack_cycle \
+        mpr:posing_cycle mpr:posing_cycle \
+        -layers remove-dups \
+        \( "${spr_base}-0.png" -set delay 1 \) \
+        \
         -sample 200% \
-        -dither None -alpha off -colors 4 -layers RemoveDups -layers OptimizePlus \
+        -dither None -alpha off -colors 4 \
+        -layers optimize-plus +remap \
         "${spr_base}.gif"
+      # Check for buggy decoders that require 13+ frames
+      frame_count="$(exiftool -s -s -s -Gif:FrameCount "${spr_base}.gif")"
+      if [[ "${frame_count}" < 13 ]]; then
+        echo "Warning: GIF has ${frame_count} frames. Check compatibility."
+      fi
       exiftool "${spr_base}.gif" -q -overwrite_original -fast5 \
         -Comment="#${mon_number} ${mon_name} - '${project} - ${copyright} ${license}"
     fi
@@ -202,7 +210,7 @@ while (( "$#" )); do
   # Finished processing
   emoji=$(echo "${mon_palette:0:1}" | sed 's/❤/❤️ /') # Fix unicode for red hearts
   echo " - ${emoji} ${img_name}"
-  # Remove temporary file
+  # Remove temporary image file
   rm -f "${tmp_file}"
 
   # Move to next image file provided

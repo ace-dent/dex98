@@ -38,7 +38,16 @@ readonly license='https://creativecommons.org/publicdomain/zero/1.0/'
 base_dir=$(realpath "$(dirname "${BASH_SOURCE[0]}")")
 art_dir=$(realpath "${base_dir}/../art")
 readonly base_dir art_dir
+# Check support files are present
+art_colors="${base_dir}/art_colormap.tsv"
 img_background="${base_dir}/img_background.png"
+readonly art_colors img_background
+for file in "${art_colors}" "${img_background}"; do
+  if [[ ! -f "${file}" ]]; then
+    echo "Support file '${file}' is missing."
+    exit
+  fi
+done
 
 echo ''
 echo 'Processing images...'
@@ -66,7 +75,6 @@ while (( "$#" )); do
   img_name="${img_name/_corrected/}" # Remove possible '_corrected' suffix
   # Sanitize the string but accept edge cases, e.g. "Mr. Mime", "Farfetch'd"
   img_name="$(echo "$img_name" | tr -c "a-zA-Z0-9'. -\n" '?')"
-  echo " > ${img_name}"
 
   # Split the hyphenated string into separate elements
   IFS='-' read -r mon_number mon_name mon_sprite <<< "${img_name}"
@@ -118,9 +126,15 @@ while (( "$#" )); do
   # Create the gallery 'art' image
   #  This is likely to be changed in the future
   art_file="${art_dir%/*}/docs/gallery/${img_name}.png"
+  # Extract color parameters for processing
+  line_number=$(( 10#${mon_number} + 1 ))
+  row=$(sed -n "${line_number}p" "$art_colors")
+  IFS=$'\t' read -r _ _ mon_palette _ _ _ _ black_point white_point border \
+    <<< "$row"
+  # Generate gallery image
   magick "${png_file}" -alpha off -sample 90x96 \
-    +level-colors "#001830,#BFBCB6" \
-    -bordercolor "#CFCDC7" -border 3 \
+    +level-colors "${black_point},${white_point}" \
+    -bordercolor "${border}" -border 4 \
     -define png:bit-depth=8 -define png:include-chunk=none \
     "${art_file}"
   # Create animated GIF when all 3 sprites are available
@@ -177,6 +191,9 @@ while (( "$#" )); do
       -Comment="${img_title} - '${project}" # Primary pbm metadata (single text line in header)
   printf '\n# %s' "${copyright}" "${license}" >> "${pbm_file}" # Extra pbm metadata appended to the plain text file
 
+  # Finished processing
+  emoji=$(echo "${mon_palette:0:1}" | sed 's/❤/❤️ /')
+  echo " - ${emoji} ${img_name}"
   # Remove temporary file
   rm -f "${tmp_file}"
 

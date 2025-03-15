@@ -15,7 +15,7 @@ for bin in 'magick' 'exiftool' 'oxipng'; do
   fi
 done
 min_version='9.1.3' # Check Oxipng v9.1.3 or greater is available (for --zi)
-this_version="$(oxipng --version | head -n1 | awk '{print $NF}')"
+this_version="$(oxipng --version | head -n1 | sed 's/^oxipng //')"
 if [[ $(printf '%s\n' "${min_version}" "${this_version}" \
     | sort -V | head -n1) != "${min_version}" ]]; then
   echo "Error: Oxipng v${this_version}; upgrade to at least v${min_version}."
@@ -70,7 +70,7 @@ while (( "$#" )); do
     exit
   fi
 
-  # Get the image name and details from the filename
+  # Get the image name, extract the details and perform validation
   img_name="$( basename -s .png "$1" )" # e.g. `006-Dragon-1`
   img_name="${img_name/_corrected/}" # Remove possible '_corrected' suffix
   # Sanitize the string but accept edge cases, e.g. "Mr. Mime", "Farfetch'd"
@@ -107,6 +107,10 @@ while (( "$#" )); do
     exit
   fi
   img_title="${mon_number} ${mon_name} (${mon_sprite})" # e.g. `006 Dragon (1)`
+
+  # Begin processing
+  emoji=$(echo "${mon_palette:0:1}" | sed 's/❤/❤️ /') # Fix unicode for red hearts
+  echo " - ${emoji} ${img_name}"
 
 
   # Produce images
@@ -207,9 +211,6 @@ while (( "$#" )); do
       -Comment="${img_title} - '${project}" # Primary pbm metadata (single text line in header)
   printf '\n# %s' "${copyright}" "${license}" >> "${pbm_file}" # Extra pbm metadata appended to the plain text file
 
-  # Finished processing
-  emoji=$(echo "${mon_palette:0:1}" | sed 's/❤/❤️ /') # Fix unicode for red hearts
-  echo " - ${emoji} ${img_name}"
   # Remove temporary image file
   rm -f "${tmp_file}"
 

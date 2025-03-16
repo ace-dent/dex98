@@ -1,4 +1,4 @@
-# TO DO
+# TODO
 
 Track progress and outstanding tasks.
 
@@ -7,7 +7,7 @@ Track progress and outstanding tasks.
 | Task                   |   Done  | Complete        |
 | :--------------------- | ------: | --------------: |
 | Select captured images |   151   | 100%            |
-| Verify and name images |   27    | 18%             |
+| Verify and name images |   50    | 33%             |
 | Image correction       |   20    | 13%             |
 | Process images and art |   20    | 13%             |
 | Upload                 |   20    | 13%             |

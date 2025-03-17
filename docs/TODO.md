@@ -7,10 +7,10 @@ Track progress and outstanding tasks.
 | Task                   |   Done  | Complete        |
 | :--------------------- | ------: | --------------: |
 | Select captured images |   151   | 100%            |
-| Verify and name images |   57    | 38%             |
-| Image correction       |   22    | 15%             |
-| Process images and art |   22    | 15%             |
-| Upload                 |   22    | 15%             |
+| Verify and name images |   82    | 54%             |
+| Image correction       |   25    | 17%             |
+| Process images and art |   24    | 16%             |
+| Upload                 |   24    | 16%             |
 
 
 ## Data
@@ -35,5 +35,6 @@ Track progress and outstanding tasks.
 
 - [ ] Add full Credits to README
 - [ ] Hero photos of the device and project banner
+- [ ] Test using flexiGIF to optimize images
 - [ ] Evaluate APNG and JXL formats for animations
 

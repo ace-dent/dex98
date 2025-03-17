@@ -38,16 +38,14 @@ readonly license='https://creativecommons.org/publicdomain/zero/1.0/'
 base_dir=$(realpath "$(dirname "${BASH_SOURCE[0]}")")
 art_dir=$(realpath "${base_dir}/../art")
 readonly base_dir art_dir
-# Check support files are present
-dex_LUT="${base_dir}/dex_table.tsv"
-img_background="${base_dir}/img_background.png"
-readonly dex_LUT img_background
-for file in "${dex_LUT}" "${img_background}"; do
-  if [[ ! -f "${file}" ]]; then
-    echo "Support file '${file}' is missing."
-    exit
-  fi
-done
+# Look Up Table support file
+readonly dex_LUT="${base_dir}/dex_table.tsv"
+if [[ ! -f "${dex_LUT}" ]]; then
+  echo "Support file '${dex_LUT}' is missing."
+  exit
+fi
+# Optional common background image; comment out to remove from image processing
+readonly img_background="${base_dir}/img_background.png"
 
 echo ''
 echo 'Processing images...'
@@ -70,11 +68,15 @@ while (( "$#" )); do
     exit
   fi
 
+
+  # Prepare 'mon details
+  # ---------------------------------------------------------------------------
+
   # Get the image name, extract the details and perform validation
   img_name="$( basename -s .png "$1" )" # e.g. `006-Dragon-1`
   img_name="${img_name/_corrected/}" # Remove possible '_corrected' suffix
-  # Sanitize the string but accept edge cases, e.g. "Mr. Mime", "Farfetch'd"
-  img_name="$(echo "$img_name" | tr -c "a-zA-Z0-9'. -\n" '?')"
+  # Sanitize the string, accepting edge cases: "Pin♀/♂" , "Duck'd", "Mr. X"
+  img_name="$(echo "$img_name" | tr -c "a-zA-Z0-9♀♂'. -\n" '?')"
   # Split the hyphenated string into separate elements
   IFS='-' read -r mon_number mon_name mon_sprite <<< "${img_name}"
   # Validate the 'mon number first
@@ -113,19 +115,30 @@ while (( "$#" )); do
   echo " - ${emoji} ${img_name}"
 
 
-  # Produce images
-  # --------------
+  # Produce 'mon images
+  # ---------------------------------------------------------------------------
 
-  png_file="${art_dir}/png/${img_name}.png"
+  # Preprocess a 'temp' file (for reuse), tweaking morphology to close pixel gaps
   tmp_file="${art_dir}/png/${img_name}-temp.png"
-  magick "$1" -negate -morphology Dilate Disk:4 -morphology Erode Disk:2 \
-      -negate -sample 480x512 "${tmp_file}"
-  magick -colorspace gray -depth 8 "${tmp_file}" "${img_background}" \
-    -compose Mathematics -define compose:args=1,-0.8,0,0.5 -composite \
+  img_width="$(magick identify -format '%w' "$1")"
+  kernel=$(( img_width > 480 ? 4 : 2 ))
+  magick "$1" -negate -morphology Dilate Disk:${kernel} \
+    -morphology Erode Disk:$((kernel/2)) -negate \
+    -sample 480x512 "${tmp_file}"
+  # Subtract a common image background (if given), to improve pixel detection
+  subtract_background_operation=()
+  if [[ -f "${img_background}" ]]; then
+    subtract_background_operation=(
+      "${img_background}"
+      -compose Mathematics -define compose:args=1,-0.8,0,0.5 -composite
+    )
+  fi
+  png_file="${art_dir}/png/${img_name}.png"
+  magick -colorspace gray -depth 8 "${tmp_file}" \
+    "${subtract_background_operation[@]}" \
     -auto-threshold OTSU -alpha off -sample 30x32 \
     -define png:color-type=0 -define png:bit-depth=8 -define png:include-chunk=none \
     "${png_file}"
-
 
   # Create 'diff' images for manual inspection and Quality Control
   diff_file="${art_dir}/png/diff.${img_name}"
@@ -141,7 +154,35 @@ while (( "$#" )); do
     -sample 480x512 -gravity center \
     -dither FloydSteinberg -colors 256 -layers Optimize "${diff_file}".gif
 
-  # Create the gallery art image
+  # Optionally check the extracted bitmap against another reference source
+  chk_file="${base_dir}/check_sprites/xchk_${mon_number}-${mon_sprite}.png"
+  if [[ ! -f "${chk_file%.*}.png" ]]; then
+    echo "Reference image '${chk_file}' not found. No extra checks performed."
+  else
+    # Remove any previous 'diff' files if we tested before (clean start)
+    if [[ -f "${chk_file}.diff.png" ]]; then
+      rm -f "${chk_file}.diff.png" "${chk_file}.diff.gif"
+    fi
+    # Generate Unique ID for the images, as 240 hexadecimal characters
+    img_uid="$(magick "${png_file}" -depth 1 PBM:- | xxd -p)"
+    chk_uid="$(magick "${chk_file}" -sample 30x32 \
+      -auto-threshold OTSU -alpha off -depth 1 PBM:- | xxd -p)"
+    if [[ "${img_uid}" != "${chk_uid}" ]]; then
+      echo -n 'WARNING! Check reference artwork for differences. '
+      magick compare -metric AE "${png_file}" "${chk_file}" \
+        "${chk_file}.diff.png"
+      # Flicker animation for comparison
+      magick -delay 50 -loop 0 \
+        "${chk_file}".diff.png "${chk_file}" "${tmp_file}" \
+        \( "${png_file}" +level-colors "#001830,#BFBCB6" \) \
+        -sample 480x512 -gravity center \
+        -dither None -colors 256 "${chk_file}".diff.gif
+      open "${chk_file}".diff.gif
+      echo ''
+    fi
+  fi
+
+  # Create the gallery art
   art_file="${art_dir%/*}/docs/gallery/${img_name}.png"
   magick "${png_file}" -alpha off -sample 90x96 \
     +level-colors "${art_black},${art_white}" \
@@ -171,7 +212,7 @@ while (( "$#" )); do
         "${spr_base}.gif"
       # Check for buggy decoders that require 13+ frames
       frame_count="$(exiftool -s -s -s -Gif:FrameCount "${spr_base}.gif")"
-      if [[ "${frame_count}" < 13 ]]; then
+      if [[ "${frame_count}" -lt 13 ]]; then
         echo "Warning: GIF has ${frame_count} frames. Check compatibility."
       fi
       exiftool "${spr_base}.gif" -q -overwrite_original -fast5 \
@@ -184,7 +225,7 @@ while (( "$#" )); do
     oxipng -q --nx --strip all "${file}"
     # First try to optimize with no reductions (8bpp, grayscale is preferred)
     #   then allow reductions (lower bit depths and other color modes)
-    for reductions in '-q --nx' '-q'; do
+    for reductions in '--nx -q' '-q'; do
       for zc_level in {0..12}; do
         oxipng ${reductions} --zc ${zc_level} --filters 0-9 "${file}"
       done
@@ -196,17 +237,16 @@ while (( "$#" )); do
   pbm_file="${art_dir}/pbm/${img_name}.pbm"
   magick "${png_file}" -depth 1 -compress None "${pbm_file}"
 
-
   # Add metadata to png files first and then pbm file
   exiftool \
     "${png_file}" "${art_file}" -q -overwrite_original -fast1 \
       -Title="#${img_title} - '${project}" \
       -Copyright="${copyright_short} ${license}" \
-    -execute \
+      -execute \
     "${png_file}" -q -overwrite_original -fast1 \
       -PNG:PixelsPerUnitX=909 -PNG:PixelsPerUnitY=1000 \
       -xresolution=23 -yresolution=25 -resolutionunit=inches \
-    -execute \
+      -execute \
     "${pbm_file}" -q -overwrite_original -fast5 \
       -Comment="${img_title} - '${project}" # Primary pbm metadata (single text line in header)
   printf '\n# %s' "${copyright}" "${license}" >> "${pbm_file}" # Extra pbm metadata appended to the plain text file

@@ -4,25 +4,28 @@ Track progress and outstanding tasks.
 
 ## Sprites
 
-| Task                   |   Done  | Complete        |
-| :--------------------- | ------: | --------------: |
-| Select captured images |   151   | 100%            |
-| Verify and name images |   82    | 54%             |
-| Image correction       |   25    | 17%             |
-| Process images and art |   24    | 16%             |
-| Upload                 |   24    | 16%             |
+| Task                      |   Done  | Complete        |
+| :------------------------ | ------: | --------------: |
+| Select captured images 🎉 |   151   | 100%            |
+| Verify and name images    |   90    | 60%             |
+| Image correction          |   38    | 25%             |
+| Process images and art    |   38    | 25%             |
+| Upload                    |   24    | 16%             |
 
 
 ## Data
 
+Collecting data depends on access to the devices. 
+
 - [ ] en-US 1998 variant
 - [ ] en-US 1999 variant
 - [x] en-GB 1999 variant
-- [ ] fr-FR variant
-- [ ] de-DE variant
-- [ ] es-ES variant
-- [ ] it-IT variant
-- [ ] nl-NL variant
+- [ ] it-IT 1999 variant
+- [ ] nl-NL 1999 variant
+- [ ] fr-FR 2000 variant
+- [ ] de-DE 2000 variant
+- [ ] es-ES 2000 variant
+- [ ] Other international versions?
 - [ ] Create `2025` corrected variations?
 
 ## Extra assets

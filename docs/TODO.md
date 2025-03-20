@@ -4,13 +4,13 @@ Track progress and outstanding tasks.
 
 ## Sprites
 
-| Task                      |   Done  | Complete        |
-| :------------------------ | ------: | --------------: |
-| Select captured images 🎉 |   151   | 100%            |
-| Verify and name images    |   90    | 60%             |
-| Image correction          |   38    | 25%             |
-| Process images and art    |   38    | 25%             |
-| Upload                    |   24    | 16%             |
+| Task                      | Done  | Complete        |
+| :------------------------ | ----: | --------------: |
+| Select captured images 🎉 | 151   | 100%            |
+| Verify and name images 🎉 | 151   | 100%            |
+| Image correction          | 50    | 33%             |
+| Process images and art    | 38    | 25%             |
+| Upload                    | 24    | 16%             |
 
 
 ## Data

@@ -8,7 +8,7 @@ Track progress and outstanding tasks.
 | :------------------------ | ----: | --------------: |
 | Select captured images 🎉 | 151   | 100%            |
 | Verify and name images 🎉 | 151   | 100%            |
-| Image correction          | 50    | 33%             |
+| Image correction          | 56    | 37%             |
 | Process images and art    | 38    | 25%             |
 | Upload                    | 24    | 16%             |
 
@@ -30,7 +30,7 @@ Collecting data depends on access to the devices.
 
 ## Extra assets
 
-- [ ] Main logo
+- [ ] Main logo (8 frames + 1 blank, over ~4.4s)
 - [ ] Replicate font
 - [ ] Device sound
 

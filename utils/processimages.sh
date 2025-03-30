@@ -1,11 +1,24 @@
 #!/bin/bash
-
-# WARNING: Not safe for public use! Created for the author's benefit.
-# Assumes:
-# - Filenames and directory structure follows the project standard.
-# - Correct images are fed in
-# - ImageMagick, exiftool and Oxipng executables are required.
-
+# SPDX-License-Identifier: CC0-1.0
+#
+# -----------------------------------------------------------------------------
+# Usage:
+#   - Provide one or more PNG photos, corrected for perspective and scale.
+#   - Photos are used to extract the basic bitmap and generate project images.
+#
+# Requirements:
+#   - ImageMagick https://imagemagick.org/
+#   - exiftool https://exiftool.org
+#   - Oxipng v9.1.3 or greater https://github.com/shssoichiro/oxipng
+#   - Optional: flexiGIF (for compressing gallery animations)
+#
+# Assumptions:
+#   - Filenames and directory structures follow the project standard.
+#   - Correct images are fed in.
+#
+# WARNING:
+#   May not be safe for public use; created for the author's benefit!
+# -----------------------------------------------------------------------------
 
 # Check the required binaries are available
 for bin in 'magick' 'exiftool' 'oxipng'; do
@@ -30,8 +43,8 @@ fi
 
 # Standard metadata for images
 readonly project='dex98.com'
-readonly copyright='This work is dedicated to the Public Domain by ACED, licensed under CC0.'
-readonly copyright_short='Public Domain by ACED, licensed under CC0.'
+readonly copyright='Public Domain by ACED, licensed under CC0.'
+readonly copyright_long='This work is dedicated to the '"${copyright}"
 readonly license='https://creativecommons.org/publicdomain/zero/1.0/'
 
 # Setup file paths
@@ -49,6 +62,8 @@ readonly img_background="${base_dir}/img_background.png"
 
 echo ''
 echo 'Processing images...'
+
+# -----------------------------------------------------------------------------
 
 
 while (( "$#" )); do
@@ -76,7 +91,7 @@ while (( "$#" )); do
   img_name="$( basename -s .png "$1" )" # e.g. `006-Dragon-1`
   img_name="${img_name/_corrected/}" # Remove possible '_corrected' suffix
   # Sanitize the string, accepting edge cases: "Pin♀/♂" , "Duck'd", "Mr. X"
-  img_name="$(echo "$img_name" | tr -c "a-zA-Z0-9♀♂'. -\n" '?')"
+  img_name="$(echo "${img_name}" | tr -c "a-zA-Z0-9♀♂'. -\n" '?')"
   # Split the hyphenated string into separate elements
   IFS='-' read -r mon_number mon_name mon_sprite <<< "${img_name}"
   # Validate the 'mon number first
@@ -184,8 +199,10 @@ while (( "$#" )); do
 
   # Create the gallery art
   art_file="${art_dir%/*}/docs/gallery/${img_name}.png"
-  magick "${png_file}" -alpha off -sample 90x96 \
-    +level-colors "${art_black},${art_white}" \
+  magick "${png_file}" -alpha off -fuzz 0 -set colorspace RGB \
+    -sample 90x96 \
+    -fill "${art_black}" -opaque '#000' \
+    -fill "${art_white}" -opaque '#FFF' \
     -bordercolor "${art_border}" -border 4 \
     -define png:bit-depth=8 -define png:include-chunk=none \
     "${art_file}"
@@ -213,10 +230,19 @@ while (( "$#" )); do
       # Check for buggy decoders that require 13+ frames
       frame_count="$(exiftool -s -s -s -Gif:FrameCount "${spr_base}.gif")"
       if [[ "${frame_count}" -lt 13 ]]; then
-        echo "Warning: GIF has ${frame_count} frames. Check compatibility."
+        echo "WARNING! GIF has ${frame_count} frames. Check compatibility."
       fi
       exiftool "${spr_base}.gif" -q -overwrite_original -fast5 \
         -Comment="#${mon_number} ${mon_name} - '${project} - ${copyright} ${license}"
+      # Optionally compress with 'flexiGIF' if available
+      if command -v 'flexigif' &> /dev/null; then
+        # Lossless LZW optimization is *very* slow (~several minutes),
+        #   so runs as an independent, single threaded, background task
+        nohup bash -c "{ \
+          flexigif -q -p -f -a=1 "${spr_base}.gif" "${spr_base}-o1.gif"; \
+          mv "${spr_base}-o1.gif" "${spr_base}.gif"; \
+        }" > /dev/null 2>&1 &
+      fi
     fi
   fi
 
@@ -241,7 +267,7 @@ while (( "$#" )); do
   exiftool \
     "${png_file}" "${art_file}" -q -overwrite_original -fast1 \
       -Title="#${img_title} - '${project}" \
-      -Copyright="${copyright_short} ${license}" \
+      -Copyright="${copyright} ${license}" \
       -execute \
     "${png_file}" -q -overwrite_original -fast1 \
       -PNG:PixelsPerUnitX=909 -PNG:PixelsPerUnitY=1000 \
@@ -249,7 +275,7 @@ while (( "$#" )); do
       -execute \
     "${pbm_file}" -q -overwrite_original -fast5 \
       -Comment="${img_title} - '${project}" # Primary pbm metadata (single text line in header)
-  printf '\n# %s' "${copyright}" "${license}" >> "${pbm_file}" # Extra pbm metadata appended to the plain text file
+  printf '\n# %s' "${copyright_long}" "${license}" >> "${pbm_file}" # Extra pbm metadata appended to the plain text file
 
   # Remove temporary image file
   rm -f "${tmp_file}"

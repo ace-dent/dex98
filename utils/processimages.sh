@@ -90,7 +90,7 @@ while (( "$#" )); do
   # Get the image name, extract the details and perform validation
   img_name="$( basename -s .png "$1" )" # e.g. `006-Dragon-1`
   img_name="${img_name/_corrected/}" # Remove possible '_corrected' suffix
-  # Sanitize the string, accepting edge cases: "Pin♀/♂" , "Duck'd", "Mr. X"
+  # Sanitize the string, accepting edge cases: `Pin♀/♂` , `Duck'd`, `Mr. X`
   img_name="$(echo "${img_name}" | tr -c "a-zA-Z0-9♀♂'. -\n" '?')"
   # Split the hyphenated string into separate elements
   IFS='-' read -r mon_number mon_name mon_sprite <<< "${img_name}"
@@ -133,7 +133,7 @@ while (( "$#" )); do
   # Produce 'mon images
   # ---------------------------------------------------------------------------
 
-  # Preprocess a 'temp' file (for reuse), tweaking morphology to close pixel gaps
+  # Preprocess 'temp' image (reused), tweaking morphology to close pixel gaps
   tmp_file="${art_dir}/png/${img_name}-temp.png"
   img_width="$(magick identify -format '%w' "$1")"
   kernel=$(( img_width > 480 ? 4 : 2 ))
@@ -148,12 +148,18 @@ while (( "$#" )); do
       -compose Mathematics -define compose:args=1,-0.8,0,0.5 -composite
     )
   fi
+
+  # Produce canonical bitmap (png), extracted from the input photograph
   png_file="${art_dir}/png/${img_name}.png"
   magick -colorspace gray -depth 8 "${tmp_file}" \
     "${subtract_background_operation[@]}" \
     -auto-threshold OTSU -alpha off -sample 30x32 \
     -define png:color-type=0 -define png:bit-depth=8 -define png:include-chunk=none \
     "${png_file}"
+
+  # Create the Portable Bit Map (PBM) as an archival copy
+  pbm_file="${art_dir}/pbm/${img_name}.pbm"
+  magick "${png_file}" -depth 1 -compress None "${pbm_file}"
 
   # Create 'diff' images for manual inspection and Quality Control
   diff_file="${art_dir}/png/diff.${img_name}"
@@ -165,9 +171,9 @@ while (( "$#" )); do
   # Flicker animation for comparison
   magick -delay 50 -loop 0 \
     \( "${tmp_file}" -modulate 100,30,100 \) \
-    \( "${png_file}" +level-colors "#111,#888" \) \
+    \( "${png_file}" +level-colors '#111,#888' \) \
     -sample 480x512 -gravity center \
-    -dither FloydSteinberg -colors 256 -layers Optimize "${diff_file}".gif
+    -dither FloydSteinberg -colors 256 "${diff_file}".gif
 
   # Optionally check the extracted bitmap against another reference source
   chk_file="${base_dir}/check_sprites/xchk_${mon_number}-${mon_sprite}.png"
@@ -178,7 +184,7 @@ while (( "$#" )); do
     if [[ -f "${chk_file}.diff.png" ]]; then
       rm -f "${chk_file}.diff.png" "${chk_file}.diff.gif"
     fi
-    # Generate Unique ID for the images, as 240 hexadecimal characters
+    # Generate Unique ID for the images; a string of 240 hexadecimal characters
     img_uid="$(magick "${png_file}" -depth 1 PBM:- | xxd -p)"
     chk_uid="$(magick "${chk_file}" -sample 30x32 \
       -auto-threshold OTSU -alpha off -depth 1 PBM:- | xxd -p)"
@@ -189,7 +195,7 @@ while (( "$#" )); do
       # Flicker animation for comparison
       magick -delay 50 -loop 0 \
         "${chk_file}".diff.png "${chk_file}" "${tmp_file}" \
-        \( "${png_file}" +level-colors "#001830,#BFBCB6" \) \
+        \( "${png_file}" +level-colors '#001830,#BFBCB6' \) \
         -sample 480x512 -gravity center \
         -dither None -colors 256 "${chk_file}".diff.gif
       open "${chk_file}".diff.gif
@@ -221,23 +227,18 @@ while (( "$#" )); do
         mpr:attack_cycle mpr:attack_cycle \
         mpr:posing_cycle mpr:posing_cycle \
         -layers remove-dups \
-        \( "${spr_base}-0.png" -set delay 1 \) \
         \
         -sample 200% \
         -dither None -alpha off -colors 4 \
         -layers optimize-plus +remap \
         "${spr_base}.gif"
-      # Check for buggy decoders that require 13+ frames
-      frame_count="$(exiftool -s -s -s -Gif:FrameCount "${spr_base}.gif")"
-      if [[ "${frame_count}" -lt 13 ]]; then
-        echo "WARNING! GIF has ${frame_count} frames. Check compatibility."
-      fi
+      # Note: Some buggy gif decoders require more than 12 frames
       exiftool "${spr_base}.gif" -q -overwrite_original -fast5 \
         -Comment="#${mon_number} ${mon_name} - '${project} - ${copyright} ${license}"
       # Optionally compress with 'flexiGIF' if available
       if command -v 'flexigif' &> /dev/null; then
-        # Lossless LZW optimization is *very* slow (~several minutes),
-        #   so runs as an independent, single threaded, background task
+        # Lossless LZW optimization is *very* slow (~several minutes)
+        #   Runs as an independent, single threaded, background task
         nohup bash -c "{ \
           flexigif -q -p -f -a=1 "${spr_base}.gif" "${spr_base}-o1.gif"; \
           mv "${spr_base}-o1.gif" "${spr_base}.gif"; \
@@ -246,7 +247,7 @@ while (( "$#" )); do
     fi
   fi
 
-  # Optimize PNG image compression, before adding custom metadata
+  # Optimize PNG images before adding custom metadata
   for file in "${png_file}" "${art_file}"; do
     oxipng -q --nx --strip all "${file}"
     # First try to optimize with no reductions (8bpp, grayscale is preferred)
@@ -258,10 +259,6 @@ while (( "$#" )); do
       oxipng ${reductions} --zopfli --zi 200 --filters 0-9 "${file}"
     done
   done
-
-  # Create the Portable Bit Map (PBM) file
-  pbm_file="${art_dir}/pbm/${img_name}.pbm"
-  magick "${png_file}" -depth 1 -compress None "${pbm_file}"
 
   # Add metadata to png files first and then pbm file
   exiftool \

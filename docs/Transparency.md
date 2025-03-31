@@ -1,7 +1,17 @@
 # Transparency
 
-In the spirit of openness, I'm sharing a breakdown of the project's finances. I hope this level of transparency encourages trust and community support. While it's not possible to quantify the love and energy invested, any and every contribution counts. 🫶
+In the spirit of openness, I'm sharing details of the project's finances. I hope this transparency encourages trust and community support. While it's not possible to quantify the love and energy invested, any and every contribution counts. 🫶
 
+
+## Current goal 🌱
+
+I'd like to get one of the later (2000) European devices, to study if any of the data was corrected and to confirm the artwork for `Mew`. If you'd like to support this work, consider making a pledge [here](https://github.com/sponsors/ace-dent). 🙏
+
+```text
+Purchase EU Device: 0% [|-------------------] £0 / £50
+```
+
+---
 
 ## Expenses
 

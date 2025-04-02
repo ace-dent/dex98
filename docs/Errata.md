@@ -42,3 +42,6 @@ Entries have a variable number of attacks from 1 to 4. When multiple attacks are
 Due to these mistakes, I suspect each entry stores a single string rather than referencing a dictionary of attacks.
 
 ## Bio
+
+Data field: maximum length 103, `[1-9A-Z,.'- ]`.
+

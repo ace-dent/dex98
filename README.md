@@ -22,9 +22,16 @@ I welcome feedback and suggestions, to continue improving the project for everyo
 
 ## Acknowledgements
 
-Image wrangling with ImageMagick, compressed with Oxipng and metadata added with ExifTool.
+Image wrangling with `ImageMagick`, compressed with `Oxipng` and metadata added with `ExifTool`. Additional image compression using `PNGOUT` and `flexiGIF`.
 
-Special thanks to @crait for the original [idea](https://community.arduboy.com/t/pokedex-for-arduboy/12469/16) and valuable discussions.  
+Special thanks to @crait for the original [idea](https://community.arduboy.com/t/pokedex-for-arduboy/12469/16), continuous support and valuable discussions.  
+
+Still images from the [video](https://www.youtube.com/watch?v=ntNE4YyX3tQ) by Alex Pereira and Shane Luis / Rerez, used with kind permission. Expertly filmed in close-up, with minimal movement between shots, ideal focus, and excellent lens selection.
+
+Photographs were adjusted using the '[Online Image Perspective Correction Tool](https://www.myogtutorials.com/free-online-image-perspective-correction-tool/)' by Sean Whitley @pricklygorse, who graciously incorporated suggestions that greatly benefitted this project.
+
+
+
 
 
 ## Legal

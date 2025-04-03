@@ -8,7 +8,7 @@ Track progress and outstanding tasks.
 | :------------------------ | ----: | --------------: |
 | Select captured images 🎉 | 151   | 100%            |
 | Verify and name images 🎉 | 151   | 100%            |
-| Image correction          | 115   | 76%             |
+| Image correction 🎉       | 151   | 100%            |
 | Process images and art    | 38    | 25%             |
 | Upload                    | 24    | 16%             |
 
@@ -38,6 +38,6 @@ Collecting data depends on access to the devices.
 
 - [ ] Add full Credits to README
 - [ ] Hero photos of the device and project banner
-- [ ] Test using flexiGIF to optimize images
-- [ ] Evaluate APNG and JXL formats for animations
+- [x] Test using flexiGIF to optimize images
+- [ ] Evaluate WebM, APNG and JXL formats for animations
 

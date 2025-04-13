@@ -10,6 +10,7 @@
 #   - ImageMagick https://imagemagick.org/
 #   - exiftool https://exiftool.org
 #   - Oxipng v9.1.3 or greater https://github.com/shssoichiro/oxipng
+#   - Optional: PNGOUT (for extra png compression)
 #   - Optional: flexiGIF (for compressing gallery animations)
 #
 # Assumptions:
@@ -107,9 +108,14 @@ while (( "$#" )); do
   # Look up properties for this 'mon (also used later for gallery artwork)
   line_number=$(( 10#${mon_number} + 1 ))
   row=$(sed -n "${line_number}p" "${dex_LUT}")
-  IFS=$'\t' read -r _ dex_name mon_palette _ _ _ _ art_black art_white art_border \
+  IFS=$'\t' read -r _ dex_name mon_palette _ _ art_white art_border art_black \
     <<< "${row}"
-  dex_name="$(echo "${dex_name}" | sed 's/[[:space:]]*$//')" # Remove trailing spaces
+  # Remove any spaces from gallery art colors
+  art_white="${art_white// /}"
+  art_border="${art_border// /}"
+  art_black="${art_black// /}"
+  # Remove trailing spaces from name
+  dex_name="$(echo "${dex_name}" | sed 's/[[:space:]]*$//')"
   # Validate the other parsed details
   if [[ ! "${mon_name}" =~ ^[A-Z] || ${#mon_name} -lt 3 ]]; then
     echo 'Invalid name. Expected TitleCase and at least 3 characters.'
@@ -205,34 +211,32 @@ while (( "$#" )); do
 
   # Create the gallery art
   art_file="${art_dir%/*}/docs/gallery/${img_name}.png"
-  magick "${png_file}" -alpha off -fuzz 0 -set colorspace RGB \
+  magick "${png_file}" -alpha off -fuzz 0 -colorspace RGB \
     -sample 90x96 \
     -fill "${art_black}" -opaque '#000' \
     -fill "${art_white}" -opaque '#FFF' \
-    -bordercolor "${art_border}" -border 4 \
-    -define png:bit-depth=8 -define png:include-chunk=none \
+    -bordercolor "${art_border}" -border 6 \
+    -define png:color-type=3 -define png:bit-depth=8 -define png:include-chunk=none \
     "${art_file}"
   # Create animated GIF when all 3 sprites are available
   if [[ "${mon_sprite}" = 2 ]]; then
     spr_base="${art_dir%/*}/docs/gallery/${mon_number}-${mon_name}"
     if [[ -f "${spr_base}-0.png" && -f "${spr_base}-1.png" && -f "${spr_base}-2.png" ]]; then
-      magick -delay 49 -loop 0 \
+      magick -loop 0 \
         \( "${spr_base}-0.png" "${spr_base}-1.png" \
           -write mpr:posing_cycle -delete 0--1 \) \
         \( "${spr_base}-0.png" "${spr_base}-2.png" \
           -write mpr:attack_cycle -delete 0--1 \) \
         \
-        \( "${spr_base}-0.png" -duplicate 3 \) \
+        -delay 200 "${spr_base}-0.png" -delay 49 \
         mpr:posing_cycle mpr:posing_cycle \
         mpr:attack_cycle mpr:attack_cycle \
         mpr:posing_cycle mpr:posing_cycle \
         -layers remove-dups \
         \
-        -sample 200% \
         -dither None -alpha off -colors 4 \
         -layers optimize-plus +remap \
         "${spr_base}.gif"
-      # Note: Some buggy gif decoders require more than 12 frames
       exiftool "${spr_base}.gif" -q -overwrite_original -fast5 \
         -Comment="#${mon_number} ${mon_name} - '${project} - ${copyright} ${license}"
       # Optionally compress with 'flexiGIF' if available
@@ -250,13 +254,18 @@ while (( "$#" )); do
   # Optimize PNG images before adding custom metadata
   for file in "${png_file}" "${art_file}"; do
     oxipng -q --nx --strip all "${file}"
-    # First try to optimize with no reductions (8bpp, grayscale is preferred)
+    # First try to optimize with no reductions (8bpp depth preferred)
     #   then allow reductions (lower bit depths and other color modes)
     for reductions in '--nx -q' '-q'; do
-      for zc_level in {0..12}; do
-        oxipng ${reductions} --zc ${zc_level} --filters 0-9 "${file}"
+      for level in {0..12}; do
+        oxipng ${reductions} --zc ${level} --filters 0-9 "${file}"
       done
-      oxipng ${reductions} --zopfli --zi 200 --filters 0-9 "${file}"
+      oxipng ${reductions} --zopfli --zi 255   --filters 0-9 "${file}"
+      if command -v 'pngout' &> /dev/null; then
+        for level in {0..3}; do
+          pngout -q -ks -kp -f6 -s${level} "${file}"
+        done
+      fi
     done
   done
 

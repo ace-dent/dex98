@@ -1,5 +1,6 @@
 #!/bin/bash
 # SPDX-License-Identifier: CC0-1.0
+# SPDX-FileCopyrightText: 2025 Andrew Dent <hi@aced.cafe>
 #
 # -----------------------------------------------------------------------------
 # Usage:
@@ -28,11 +29,12 @@ for bin in 'magick' 'exiftool' 'oxipng'; do
     exit
   fi
 done
-min_version='9.1.3' # Check Oxipng v9.1.3 or greater is available (for --zi)
-this_version="$(oxipng --version | head -n1 | sed 's/^oxipng //')"
-if [[ $(printf '%s\n' "${min_version}" "${this_version}" \
-    | sort -V | head -n1) != "${min_version}" ]]; then
-  echo "Error: Oxipng v${this_version}; upgrade to at least v${min_version}."
+# Check Oxipng is v9.1.3 or greater (for Zopfli iterations `--zi`)
+min_ver='9.1.3'
+this_ver="$(oxipng --version | head -n1 | sed 's/^oxipng //')"
+if [[ $(printf '%s\n' "${min_ver}" "${this_ver}" | sort -V | head -n1) \
+  != "${min_ver}" ]]; then
+  echo "Error: Oxipng v${this_ver}; upgrade to at least v${min_ver}."
   exit
 fi
 # Check for at least one input file
@@ -96,7 +98,7 @@ while (( "$#" )); do
   # Split the hyphenated string into separate elements
   IFS='-' read -r mon_number mon_name mon_sprite <<< "${img_name}"
   # Validate the 'mon number first
-  if ! [[ "${mon_number}" =~ ^[0-9]{3}$ ]] \
+  if [[ ! "${mon_number}" =~ ^[0-9]{3}$ ]] \
       || (( 10#"${mon_number}" < 1 || 10#"${mon_number}" > 151 )); then
     echo 'Invalid number. Expected between 001 and 151, with leading zeroes.'
     exit
@@ -221,7 +223,9 @@ while (( "$#" )); do
   # Create animated GIF when all 3 sprites are available
   if [[ "${mon_sprite}" = 2 ]]; then
     spr_base="${art_dir%/*}/docs/gallery/${mon_number}-${mon_name}"
-    if [[ -f "${spr_base}-0.png" && -f "${spr_base}-1.png" && -f "${spr_base}-2.png" ]]; then
+    if [[ -f "${spr_base}-0.png" \
+      && -f "${spr_base}-1.png" \
+      && -f "${spr_base}-2.png" ]]; then
       magick -loop 0 \
         \( "${spr_base}-0.png" "${spr_base}-1.png" \
           -write mpr:posing_cycle -delete 0--1 \) \
@@ -239,10 +243,9 @@ while (( "$#" )); do
         "${spr_base}.gif"
       exiftool "${spr_base}.gif" -q -overwrite_original -fast5 \
         -Comment="#${mon_number} ${mon_name} - '${project} - ${copyright} ${license}"
-      # Optionally compress with 'flexiGIF' if available
+      # Optionally compress with FlexiGIF if available
       if command -v 'flexigif' &> /dev/null; then
-        # Lossless LZW optimization is *very* slow (~several minutes)
-        #   Runs as an independent, single threaded, background task
+        # Single-threaded LZW optimizer is slow, so runs as a background task
         nohup bash -c "{ \
           flexigif -q -p -f -a=1 "${spr_base}.gif" "${spr_base}-o1.gif"; \
           mv "${spr_base}-o1.gif" "${spr_base}.gif"; \
@@ -261,6 +264,7 @@ while (( "$#" )); do
         oxipng ${reductions} --zc ${level} --filters 0-9 "${file}"
       done
       oxipng ${reductions} --zopfli --zi 255   --filters 0-9 "${file}"
+      # Optionally compress with PNGOUT if available
       if command -v 'pngout' &> /dev/null; then
         for level in {0..3}; do
           pngout -q -ks -kp -f6 -s${level} "${file}"

@@ -10,7 +10,7 @@ Track progress and outstanding tasks.
 | Verify and name images 🎉 | 151   | 100%            |
 | Image correction 🎉       | 151   | 100%            |
 | Process images and QC     | 78    | 51%             |
-| Upload                    | 76    | 50%             |
+| Upload                    | 78    | 51%             |
 
 
 ## Data

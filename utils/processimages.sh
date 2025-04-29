@@ -43,6 +43,26 @@ if [[ -z "$1" ]]; then
   exit
 fi
 
+# Common function for lossless png optimization
+optimize_png() {
+  if [[ -f "$1" ]]; then
+    oxipng -q --nx --strip all "$1"
+    # First try to optimize with no reductions (8bpp depth preferred)
+    #   then allow reductions (lower bit depths and other color modes)
+    for reductions in '--nx -q' '-q'; do
+      for level in {0..12}; do
+        oxipng ${reductions} --zc ${level} --filters 0-9 "$1"
+      done
+      oxipng ${reductions} --zopfli --zi 255 --filters 0-9 "$1"
+      # Optionally compress with PNGOUT if available
+      if command -v 'pngout' &> /dev/null; then
+        for level in {0..3}; do
+          pngout -q -ks -kp -f6 -s${level} "$1"
+        done
+      fi
+    done
+  fi
+}
 
 # Standard metadata for images
 readonly project='dex98.com'
@@ -164,6 +184,7 @@ while (( "$#" )); do
     -auto-threshold OTSU -alpha off -sample 30x32 \
     -define png:color-type=0 -define png:bit-depth=8 -define png:include-chunk=none \
     "${png_file}"
+  optimize_png "${png_file}"
 
   # Create the Portable Bit Map (PBM) as an archival copy
   pbm_file="${art_dir}/pbm/${img_name}.pbm"
@@ -213,26 +234,46 @@ while (( "$#" )); do
 
   # Create the gallery art
   art_file="${art_dir%/*}/docs/gallery/${img_name}.png"
-  magick "${png_file}" -alpha off -fuzz 0 -colorspace RGB \
+  magick "${png_file}" -alpha off -colorspace RGB \
     -sample 90x96 \
-    -fill "${art_black}" -opaque '#000' \
-    -fill "${art_white}" -opaque '#FFF' \
+    -fuzz 0 -fill "${art_black}" -opaque black \
+    -fuzz 0 -fill "${art_white}" -opaque white \
     -bordercolor "${art_border}" -border 6 \
     -define png:color-type=3 -define png:bit-depth=8 -define png:include-chunk=none \
     "${art_file}"
-  # Create animated GIF when all 3 sprites are available
+  optimize_png "${art_file}"
+
+  # Create 'mon spritesheet and animated GIF for all 3 frames
   if [[ "${mon_sprite}" = 2 ]]; then
-    spr_base="${art_dir%/*}/docs/gallery/${mon_number}-${mon_name}"
+    # Check all 3 sprites are present
+    spr_base="${art_dir}/png/${mon_number}-${mon_name}"
     if [[ -f "${spr_base}-0.png" \
       && -f "${spr_base}-1.png" \
       && -f "${spr_base}-2.png" ]]; then
+      # Spritesheet (horizontal)
+      magick montage -colorspace gray -depth 8 \
+        "${spr_base}-0.png" "${spr_base}-1.png" "${spr_base}-2.png" \
+        -tile 3x1 -geometry +0+0 \
+        -define png:color-type=0 -define png:bit-depth=8 -define png:include-chunk=none \
+        "${spr_base}.png"
+      optimize_png "${spr_base}.png"
+      exiftool "${spr_base}.png" -q -overwrite_original -fast1 \
+        -Title="#${mon_number} ${mon_name} - '${project}" \
+        -Copyright="${copyright} ${license}"
+    fi
+    # Check all 3 gallery images are present
+    art_base="${art_dir%/*}/docs/gallery/${mon_number}-${mon_name}"
+    if [[ -f "${art_base}-0.png" \
+      && -f "${art_base}-1.png" \
+      && -f "${art_base}-2.png" ]]; then
+      # Animation
       magick -loop 0 \
-        \( "${spr_base}-0.png" "${spr_base}-1.png" \
+        \( "${art_base}-0.png" "${art_base}-1.png" \
           -write mpr:posing_cycle -delete 0--1 \) \
-        \( "${spr_base}-0.png" "${spr_base}-2.png" \
+        \( "${art_base}-0.png" "${art_base}-2.png" \
           -write mpr:attack_cycle -delete 0--1 \) \
         \
-        -delay 200 "${spr_base}-0.png" -delay 49 \
+        -delay 200 "${art_base}-0.png" -delay 49 \
         mpr:posing_cycle mpr:posing_cycle \
         mpr:attack_cycle mpr:attack_cycle \
         mpr:posing_cycle mpr:posing_cycle \
@@ -240,38 +281,19 @@ while (( "$#" )); do
         \
         -dither None -alpha off -colors 4 \
         -layers optimize-plus +remap \
-        "${spr_base}.gif"
-      exiftool "${spr_base}.gif" -q -overwrite_original -fast5 \
+        "${art_base}.gif"
+      exiftool "${art_base}.gif" -q -overwrite_original -fast5 \
         -Comment="#${mon_number} ${mon_name} - '${project} - ${copyright} ${license}"
       # Optionally compress with FlexiGIF if available
       if command -v 'flexigif' &> /dev/null; then
         # Single-threaded LZW optimizer is slow, so runs as a background task
         nohup bash -c "{ \
-          flexigif -q -p -f -a=1 "${spr_base}.gif" "${spr_base}-o1.gif"; \
-          mv "${spr_base}-o1.gif" "${spr_base}.gif"; \
+          flexigif -q -p -f -a=1 "${art_base}.gif" "${art_base}-o1.gif"; \
+          mv "${art_base}-o1.gif" "${art_base}.gif"; \
         }" > /dev/null 2>&1 &
       fi
     fi
   fi
-
-  # Optimize PNG images before adding custom metadata
-  for file in "${png_file}" "${art_file}"; do
-    oxipng -q --nx --strip all "${file}"
-    # First try to optimize with no reductions (8bpp depth preferred)
-    #   then allow reductions (lower bit depths and other color modes)
-    for reductions in '--nx -q' '-q'; do
-      for level in {0..12}; do
-        oxipng ${reductions} --zc ${level} --filters 0-9 "${file}"
-      done
-      oxipng ${reductions} --zopfli --zi 255   --filters 0-9 "${file}"
-      # Optionally compress with PNGOUT if available
-      if command -v 'pngout' &> /dev/null; then
-        for level in {0..3}; do
-          pngout -q -ks -kp -f6 -s${level} "${file}"
-        done
-      fi
-    done
-  done
 
   # Add metadata to png files first and then pbm file
   exiftool \
@@ -286,6 +308,7 @@ while (( "$#" )); do
     "${pbm_file}" -q -overwrite_original -fast5 \
       -Comment="${img_title} - '${project}" # Primary pbm metadata (single text line in header)
   printf '\n# %s' "${copyright_long}" "${license}" >> "${pbm_file}" # Extra pbm metadata appended to the plain text file
+
 
   # Remove temporary image file
   rm -f "${tmp_file}"

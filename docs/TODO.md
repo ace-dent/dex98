@@ -4,14 +4,7 @@ Track progress and outstanding tasks.
 
 ## Sprites
 
-| Task                      | Done  | Complete        |
-| :------------------------ | ----: | --------------: |
-| Select captured images 🎉 | 151   | 100%            |
-| Verify and name images 🎉 | 151   | 100%            |
-| Image correction 🎉       | 151   | 100%            |
-| Process images and QC 🎉  | 151   | 100%            |
-| Upload 🎉                 | 151   | 100%            |
-
+Complete! 🎉  
 
 ## Data
 
@@ -30,7 +23,6 @@ Collecting data depends on access to the devices.
 
 ## Extra assets
 
-- [x] Main logo (8 frames + 1 blank, over ~4.4s)
 - [ ] Replicate font
 - [ ] Device sound
 
@@ -38,6 +30,4 @@ Collecting data depends on access to the devices.
 
 - [ ] Add full Credits to README
 - [ ] Hero photos of the device and project banner
-- [x] Test using flexiGIF to optimize images
-- [ ] Evaluate WebM, APNG and JXL formats for animations
 

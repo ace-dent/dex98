@@ -1,6 +1,6 @@
 #!/bin/bash
 # SPDX-License-Identifier: CC0-1.0
-# SPDX-FileCopyrightText: 2025 Andrew Dent <hi@aced.cafe>
+# SPDX-FileCopyrightText: 2025 Andrew C.E. Dent <hi@aced.cafe>
 #
 # -----------------------------------------------------------------------------
 # Usage:
@@ -306,8 +306,9 @@ while (( "$#" )); do
       -xresolution=23 -yresolution=25 -resolutionunit=inches \
       -execute \
     "${pbm_file}" -q -overwrite_original -fast5 \
-      -Comment="${img_title} - '${project}" # Primary pbm metadata (single text line in header)
-  printf '\n# %s' "${copyright_long}" "${license}" >> "${pbm_file}" # Extra pbm metadata appended to the plain text file
+      -Comment="${img_title} - '${project}" # Primary metadata (single line in header)
+  # Extra pbm metadata appended to the end as plain text
+  printf '\n# %s' "${copyright_long}" "${license}" >> "${pbm_file}"
 
 
   # Remove temporary image file
@@ -316,6 +317,106 @@ while (( "$#" )); do
   # Move to next image file provided
   shift
 done
+
+
+publish_sprites=0
+publish_gallery=0
+# For publishing final release files, set to true (1)
+#   Disabled by default (0), as image optimization steps are quite slow
+
+if [[ "${publish_sprites:-0}" -eq 1 || "${publish_gallery:-0}" -eq 1 ]]; then
+  dex=()  # Create an array for file names
+  while IFS=$'\t' read -r dex_number dex_name _; do
+    # Skip the first row (header)
+    if [[ -z "$dex_number" ]]; then
+      continue
+    fi
+    # Remove trailing spaces
+    dex_number="$(echo "${dex_number}" | sed 's/[[:space:]]*$//')"
+    dex_name="$(echo "${dex_name}" | sed 's/[[:space:]]*$//')"
+    # Convert dex_number to decimal and use it as an index
+    dex_index=$((10#$dex_number))
+    # Store the formatted value in the array
+    dex["${dex_index}"]="${dex_number}-${dex_name}"
+  done < <(tail -n +2 "$dex_LUT")
+fi
+
+
+if [[ "${publish_sprites:-0}" -eq 1 ]]; then
+  # Combine individual 'mon spritesheets (3x1) into main spritesheet (3x151)
+  echo ' - Generating main spritesheet...'
+  sprites_dir="${art_dir%}/png/"
+  spritesheet_img="${sprites_dir}SPRITESHEET.png"
+  sprite_files=()
+  for file in "${dex[@]}"; do
+      # Array of filepaths for spritesheets
+      sprite_files+=("${sprites_dir}""${file}"'.png')
+  done
+  magick montage -colorspace gray -depth 8 \
+    "${sprite_files[@]}" \
+    -tile 1x151 -geometry +0+0 \
+    -define png:color-type=0 -define png:bit-depth=8 -define png:include-chunk=none \
+    "${spritesheet_img}"
+  optimize_png "${spritesheet_img}"
+  exiftool "${spritesheet_img}" -q -overwrite_original -fast1 \
+    -Title="'${project}" \
+    -Copyright="${copyright} ${license}"
+  open "${spritesheet_img}"
+fi
+
+
+if [[ "${publish_gallery:-0}" -eq 1 ]]; then
+  # Produce main animated GIF gallery image
+  echo ' - Generating main gallery image...'
+  gallery_dir="${art_dir%/*}/docs/gallery/"
+  gallery_img="${gallery_dir}GALLERY"
+  # Insert placeholder images to improve 6 column alignment, minimizing
+  #   row breaks between related 'mon.
+  dex=( "${dex[@]:0:47}" '998-Placeholder' "${dex[@]:48}")
+
+  # Produce one combined gallery image for each frame of animation
+  for frame in {0..2}; do
+    gallery_files=()
+    for file in "${dex[@]:0:150}"; do
+        # Array of filepaths to 'mon gallery images (exc. 150 and 151)
+        gallery_files+=("${gallery_dir}""${file}""-${frame}"'.png')
+    done
+    magick montage "${gallery_files[@]}" \
+      -tile 6x26 -geometry +0+0 \
+      "${gallery_img}-${frame}.png"
+    # Create footer row featuring: 150, logo (centered), 151.
+    canvas_color="#D8D6D0" # Lightest yellow (border color)
+    magick -size 612x108 canvas:"${canvas_color}" \
+      "${gallery_dir}${dex[150]}-${frame}.png" -geometry +0+0 -composite \
+      "${gallery_dir}${dex[151]}-${frame}.png" -geometry +510+0 -composite \
+      "${gallery_dir}000-Logo.png" -gravity center -composite \
+      -write mpr:gallery_footer +delete \
+      "${gallery_img}-${frame}.png" mpr:gallery_footer -append \
+      "${gallery_img}-${frame}.png"
+  done
+
+  magick -loop 0 \
+    \( "${gallery_img}-0.png" "${gallery_img}-1.png" \
+      -write mpr:posing_cycle -delete 0--1 \) \
+    \( "${gallery_img}-0.png" "${gallery_img}-2.png" \
+      -write mpr:attack_cycle -delete 0--1 \) \
+    \
+    -delay 1029 "${gallery_img}-0.png" -delay 49 \
+    mpr:posing_cycle mpr:posing_cycle \
+    mpr:attack_cycle mpr:attack_cycle \
+    mpr:posing_cycle mpr:posing_cycle \
+    -layers remove-dups \
+    \
+    -dither None -layers optimize-plus +remap \
+    -fuzz 0 -layers optimize-transparency \
+    "${gallery_img}.gif"
+  exiftool "${gallery_img}.gif" -q -overwrite_original -fast5 \
+    -Comment="'${project} - ${copyright} ${license}"
+  # flexigif -p -f -a=30 "${gallery_img}.gif" "${gallery_img}-optim30.gif"
+  open "${gallery_img}.gif"
+  # Remove temporary image files
+  rm -f "${gallery_img}-0.png" "${gallery_img}-1.png" "${gallery_img}-2.png"
+fi
 
 
 echo '...Finished :)'

@@ -22,10 +22,16 @@
 #   May not be safe for public use; created for the author's benefit!
 # -----------------------------------------------------------------------------
 
+
+#  Pretty messages, colored if NO_COLOR is unset and stdout is a valid terminal
+ERR='✖ Error:' WARN='▲ Warning:'
+[[ -z "${NO_COLOR-}" && -t 1 && "${TERM-}" != dumb ]] \
+  && ERR=$'\e[31m'$ERR$'\e[0m' WARN=$'\e[33m'$WARN$'\e[0m'
+
 # Check the required binaries are available
 for bin in 'magick' 'exiftool' 'oxipng'; do
   if ! command -v "${bin}" &> /dev/null; then
-    echo "Error: '${bin}' is not installed or not in your PATH."
+    echo "${ERR} '${bin}' is not installed or not in your PATH."
     exit
   fi
 done
@@ -34,12 +40,12 @@ min_ver='9.1.3'
 this_ver="$(oxipng --version | head -n1 | sed 's/^oxipng //')"
 if [[ $(printf '%s\n' "${min_ver}" "${this_ver}" | sort -V | head -n1) \
   != "${min_ver}" ]]; then
-  echo "Error: Oxipng v${this_ver}; upgrade to at least v${min_ver}."
+  echo "${ERR} Oxipng v${this_ver}; upgrade to at least v${min_ver}."
   exit
 fi
 # Check for at least one input file
 if [[ -z "$1" ]]; then
-  echo 'Missing filename. Provide at least one PNG image to process.'
+  echo "${ERR} Missing filename. Provide at least one PNG image to process."
   exit
 fi
 
@@ -77,7 +83,7 @@ readonly base_dir art_dir
 # Look Up Table support file
 readonly dex_LUT="${base_dir}/dex_table.tsv"
 if [[ ! -f "${dex_LUT}" ]]; then
-  echo "Support file '${dex_LUT}' is missing."
+  echo "${ERR} Support file '${dex_LUT}' is missing."
   exit
 fi
 # Optional common background image; comment out to remove from image processing
@@ -93,16 +99,16 @@ while (( "$#" )); do
 
   # Minimal checks for the input file
   if [[ ! -f "${1%.*}.png" ]]; then
-    echo 'File not found. PNG file required.'
+    echo "${ERR} File not found. PNG file required."
     exit
   fi
   file_size=$(stat -f%z "$1")
   if (( file_size < 10240 || file_size > 1048576 )); then
-    echo 'File size is outside the allowed range (10 KiB - 1 MiB).'
+    echo "${ERR} File size is outside the allowed range (10 KiB - 1 MiB)."
     exit
   fi
   if ! oxipng -q --pretend --nx --nz "$1"; then
-    echo 'Not a valid PNG file. Check for image format issues.'
+    echo "${ERR} Not a valid PNG file. Check for image format issues."
     exit
   fi
 
@@ -120,11 +126,11 @@ while (( "$#" )); do
   # Validate the 'mon number first
   if [[ ! "${mon_number}" =~ ^[0-9]{3}$ ]] \
       || (( 10#"${mon_number}" < 1 || 10#"${mon_number}" > 151 )); then
-    echo 'Invalid number. Expected between 001 and 151, with leading zeroes.'
+    echo "${ERR} Invalid number. Expected between 001 and 151, with leading zeroes."
     exit
   fi
   if [[ ! "${mon_number}" = "$( basename "${1%/*}" )" ]] ; then
-    echo 'Invalid number. File and its directory name mismatch.'
+    echo "${ERR} Invalid number. File and its directory name mismatch."
     exit
   fi
   # Look up properties for this 'mon (also used later for gallery artwork)
@@ -140,15 +146,15 @@ while (( "$#" )); do
   dex_name="$(echo "${dex_name}" | sed 's/[[:space:]]*$//')"
   # Validate the other parsed details
   if [[ ! "${mon_name}" =~ ^[A-Z] || ${#mon_name} -lt 3 ]]; then
-    echo 'Invalid name. Expected TitleCase and at least 3 characters.'
+    echo "${ERR} Invalid name. Expected TitleCase and at least 3 characters."
     exit
   fi
   if [[ ! "${mon_name}" =  "${dex_name}" ]]; then
-    echo "Invalid name. '${mon_name}' does not match expected '${dex_name}'."
+    echo "${ERR} Invalid name. '${mon_name}' does not match expected '${dex_name}'."
     exit
   fi
   if [[ ! "${mon_sprite}" =~ ^[0-2]$ ]]; then
-    echo 'Invalid sprite number. Expected 0, 1, or 2 (rest, pose, attack).'
+    echo "${ERR} Invalid sprite number. Expected 0, 1, or 2 (rest, pose, attack)."
     exit
   fi
   img_title="${mon_number} ${mon_name} (${mon_sprite})" # e.g. `006 Dragon (1)`
@@ -207,7 +213,7 @@ while (( "$#" )); do
   # Optionally check the extracted bitmap against another reference source
   chk_file="${base_dir}/check_sprites/xchk_${mon_number}-${mon_sprite}.png"
   if [[ ! -f "${chk_file%.*}.png" ]]; then
-    echo "Reference image '${chk_file}' not found. No extra checks performed."
+    echo "${WARN} Reference image '${chk_file}' not found. No extra checks performed."
   else
     # Remove any previous 'diff' files if we tested before (clean start)
     if [[ -f "${chk_file}.diff.png" ]]; then
@@ -218,7 +224,7 @@ while (( "$#" )); do
     chk_uid="$(magick "${chk_file}" -sample 30x32 \
       -auto-threshold OTSU -alpha off -depth 1 PBM:- | xxd -p)"
     if [[ "${img_uid}" != "${chk_uid}" ]]; then
-      echo -n 'WARNING! Check reference artwork for differences. '
+      echo -n "${WARN} Check reference artwork for differences. "
       magick compare -metric AE "${png_file}" "${chk_file}" \
         "${chk_file}.diff.png"
       # Flicker animation for comparison

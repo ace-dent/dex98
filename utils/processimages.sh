@@ -19,7 +19,9 @@
 #   - Correct images are fed in.
 #
 # WARNING:
-#   May not be safe for public use; created for the author's benefit!
+#   May not be safe for public use; created for the author’s benefit.
+#   Provided “as is”, without warranty of any kind; see the
+#   accompanying LICENSE file for full terms. Use at your own risk!
 # -----------------------------------------------------------------------------
 
 
@@ -98,8 +100,8 @@ echo 'Processing images...'
 while (( "$#" )); do
 
   # Minimal checks for the input file
-  if [[ ! -f "${1%.*}.png" ]]; then
-    echo "${ERR} File not found. PNG file required."
+  if [[ ! -f "${1%.*}.png" || ! -r "$1" ]]; then
+    echo "${ERR} File is not accessible. PNG file required."
     exit
   fi
   file_size=$(stat -f%z "$1")

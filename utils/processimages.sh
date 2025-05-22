@@ -73,7 +73,7 @@ optimize_png() {
 # Standard metadata for images
 readonly project='dex98.com'
 readonly copyright='Public Domain by ACED, licensed under CC0.'
-readonly copyright_long='This work is dedicated to the '"${copyright}"
+readonly copyright_long="This work is dedicated to the ${copyright}"
 readonly license='https://creativecommons.org/publicdomain/zero/1.0/'
 
 # Setup file paths
@@ -356,7 +356,7 @@ if [[ "${publish_sprites:-0}" -eq 1 ]]; then
   sprite_files=()
   for file in "${dex[@]}"; do
       # Array of filepaths for spritesheets
-      sprite_files+=("${sprites_dir}""${file}"'.png')
+      sprite_files+=("${sprites_dir}${file}.png")
   done
   magick montage -colorspace gray -depth 8 \
     "${sprite_files[@]}" \
@@ -385,7 +385,7 @@ if [[ "${publish_gallery:-0}" -eq 1 ]]; then
     gallery_files=()
     for file in "${dex[@]:0:150}"; do
         # Array of filepaths to 'mon gallery images (exc. 150 and 151)
-        gallery_files+=("${gallery_dir}""${file}""-${frame}"'.png')
+        gallery_files+=("${gallery_dir}${file}-${frame}.png")
     done
     magick montage "${gallery_files[@]}" \
       -tile 6x26 -geometry +0+0 \

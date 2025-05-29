@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # SPDX-License-Identifier: CC0-1.0
 # SPDX-FileCopyrightText: 2025 Andrew C.E. Dent <hi@aced.cafe>
 #
@@ -19,8 +19,8 @@
 #   - Correct images are fed in.
 #
 # WARNING:
-#   May not be safe for public use; created for the author’s benefit.
-#   Provided “as is”, without warranty of any kind; see the
+#   May not be safe for public use; created for the author's benefit.
+#   Provided "as is", without warranty of any kind; see the
 #   accompanying LICENSE file for full terms. Use at your own risk!
 # -----------------------------------------------------------------------------
 
@@ -28,7 +28,7 @@
 #  Pretty messages, colored if NO_COLOR is unset and stdout is a valid terminal
 ERR='✖ Error:' WARN='▲ Warning:'
 [[ -z "${NO_COLOR-}" && -t 1 && "${TERM-}" != dumb ]] \
-  && ERR=$'\e[31m'$ERR$'\e[0m' WARN=$'\e[33m'$WARN$'\e[0m'
+  && ERR=$'\e[31m'$ERR$'\e[m' WARN=$'\e[33m'$WARN$'\e[m'
 
 # Check the required binaries are available
 for bin in 'magick' 'exiftool' 'oxipng'; do
@@ -71,6 +71,14 @@ optimize_png() {
     done
   fi
 }
+
+# Common function to remove whitespace around strings
+trim_string() {
+    local trimmed="${1#"${1%%[![:space:]]*}"}"
+    trimmed="${trimmed%"${trimmed##*[![:space:]]}"}"
+    printf '%s' "${trimmed}"
+}
+
 
 # Standard metadata for images
 readonly project='dex98.com'
@@ -145,7 +153,7 @@ while (( "$#" )); do
   art_border="${art_border// /}"
   art_black="${art_black// /}"
   # Remove trailing spaces from name
-  dex_name="$(echo "${dex_name}" | sed 's/[[:space:]]*$//')"
+  dex_name="$(trim_string "${dex_name}")"
   # Validate the other parsed details
   if [[ ! "${mon_name}" =~ ^[A-Z] || ${#mon_name} -lt 3 ]]; then
     echo "${ERR} Invalid name. Expected TitleCase and at least 3 characters."
@@ -332,6 +340,7 @@ publish_gallery=0
 # For publishing final release files, set to true (1)
 #   Disabled by default (0), as image optimization steps are quite slow
 
+
 if [[ "${publish_sprites:-0}" -eq 1 || "${publish_gallery:-0}" -eq 1 ]]; then
   dex=()  # Create an array for file names
   while IFS=$'\t' read -r dex_number dex_name _; do
@@ -339,9 +348,8 @@ if [[ "${publish_sprites:-0}" -eq 1 || "${publish_gallery:-0}" -eq 1 ]]; then
     if [[ -z "$dex_number" ]]; then
       continue
     fi
-    # Remove trailing spaces
-    dex_number="$(echo "${dex_number}" | sed 's/[[:space:]]*$//')"
-    dex_name="$(echo "${dex_name}" | sed 's/[[:space:]]*$//')"
+    dex_number="$(trim_string "${dex_number}")"
+    dex_name="$(trim_string "${dex_name}")"
     # Convert dex_number to decimal and use it as an index
     dex_index=$((10#$dex_number))
     # Store the formatted value in the array

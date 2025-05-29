@@ -8,9 +8,10 @@
 #   - Photos are used to extract the basic bitmap and generate project images.
 #
 # Requirements:
+#   - Bash v3.0+
 #   - ImageMagick https://imagemagick.org/
-#   - exiftool https://exiftool.org
-#   - Oxipng v9.1.3 or greater https://github.com/shssoichiro/oxipng
+#   - ExifTool https://exiftool.org
+#   - Oxipng v9.1.3+ https://github.com/shssoichiro/oxipng
 #   - Optional: PNGOUT (for extra png compression)
 #   - Optional: flexiGIF (for compressing gallery animations)
 #
@@ -25,7 +26,7 @@
 # -----------------------------------------------------------------------------
 
 
-#  Pretty messages, colored if NO_COLOR is unset and stdout is a valid terminal
+# Message decorations - colored for terminals with NO_COLOR unset
 ERR='✖ Error:' WARN='▲ Warning:'
 [[ -z "${NO_COLOR-}" && -t 1 && "${TERM-}" != dumb ]] \
   && ERR=$'\e[31m'$ERR$'\e[m' WARN=$'\e[33m'$WARN$'\e[m'
@@ -34,7 +35,7 @@ ERR='✖ Error:' WARN='▲ Warning:'
 for bin in 'magick' 'exiftool' 'oxipng'; do
   if ! command -v "${bin}" &> /dev/null; then
     echo "${ERR} '${bin}' is not installed or not in your PATH."
-    exit
+    exit 1
   fi
 done
 # Check Oxipng is v9.1.3 or greater (for Zopfli iterations `--zi`)
@@ -43,12 +44,12 @@ this_ver="$(oxipng --version | head -n1 | sed 's/^oxipng //')"
 if [[ $(printf '%s\n' "${min_ver}" "${this_ver}" | sort -V | head -n1) \
   != "${min_ver}" ]]; then
   echo "${ERR} Oxipng v${this_ver}; upgrade to at least v${min_ver}."
-  exit
+  exit 1
 fi
 # Check for at least one input file
 if [[ -z "$1" ]]; then
   echo "${ERR} Missing filename. Provide at least one PNG image to process."
-  exit
+  exit 1
 fi
 
 # Common function for lossless png optimization
@@ -90,11 +91,11 @@ readonly license='https://creativecommons.org/publicdomain/zero/1.0/'
 base_dir=$(realpath "$(dirname "${BASH_SOURCE[0]}")")
 art_dir=$(realpath "${base_dir}/../art")
 readonly base_dir art_dir
-# Look Up Table support file
+# Path to supporting data file
 readonly dex_LUT="${base_dir}/dex_table.tsv"
 if [[ ! -f "${dex_LUT}" ]]; then
   echo "${ERR} Support file '${dex_LUT}' is missing."
-  exit
+  exit 1
 fi
 # Optional common background image; comment out to remove from image processing
 readonly img_background="${base_dir}/img_background.png"
@@ -110,16 +111,16 @@ while (( "$#" )); do
   # Minimal checks for the input file
   if [[ ! -f "${1%.*}.png" || ! -r "$1" ]]; then
     echo "${ERR} File is not accessible. PNG file required."
-    exit
+    exit 1
   fi
-  file_size=$(stat -f%z "$1")
+  file_size=$(stat -f%z "$1" 2>/dev/null || wc -c <"$1")
   if (( file_size < 10240 || file_size > 1048576 )); then
     echo "${ERR} File size is outside the allowed range (10 KiB - 1 MiB)."
-    exit
+    exit 1
   fi
   if ! oxipng -q --pretend --nx --nz "$1"; then
     echo "${ERR} Not a valid PNG file. Check for image format issues."
-    exit
+    exit 1
   fi
 
 
@@ -137,13 +138,13 @@ while (( "$#" )); do
   if [[ ! "${mon_number}" =~ ^[0-9]{3}$ ]] \
       || (( 10#"${mon_number}" < 1 || 10#"${mon_number}" > 151 )); then
     echo "${ERR} Invalid number. Expected between 001 and 151, with leading zeroes."
-    exit
+    exit 1
   fi
   if [[ ! "${mon_number}" = "$( basename "${1%/*}" )" ]] ; then
     echo "${ERR} Invalid number. File and its directory name mismatch."
-    exit
+    exit 1
   fi
-  # Look up properties for this 'mon (also used later for gallery artwork)
+  # Look up properties for this 'mon (and colors used later for gallery artwork)
   line_number=$(( 10#${mon_number} + 1 ))
   row=$(sed -n "${line_number}p" "${dex_LUT}")
   IFS=$'\t' read -r _ dex_name mon_palette _ _ art_white art_border art_black \
@@ -157,15 +158,15 @@ while (( "$#" )); do
   # Validate the other parsed details
   if [[ ! "${mon_name}" =~ ^[A-Z] || ${#mon_name} -lt 3 ]]; then
     echo "${ERR} Invalid name. Expected TitleCase and at least 3 characters."
-    exit
+    exit 1
   fi
   if [[ ! "${mon_name}" =  "${dex_name}" ]]; then
     echo "${ERR} Invalid name. '${mon_name}' does not match expected '${dex_name}'."
-    exit
+    exit 1
   fi
   if [[ ! "${mon_sprite}" =~ ^[0-2]$ ]]; then
     echo "${ERR} Invalid sprite number. Expected 0, 1, or 2 (rest, pose, attack)."
-    exit
+    exit 1
   fi
   img_title="${mon_number} ${mon_name} (${mon_sprite})" # e.g. `006 Dragon (1)`
 
@@ -437,4 +438,4 @@ fi
 
 echo '...Finished :)'
 echo ''
-exit
+exit 0

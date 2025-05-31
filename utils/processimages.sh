@@ -20,17 +20,24 @@
 #   - Correct images are fed in.
 #
 # WARNING:
-#   May not be safe for public use; created for the author's benefit.
-#   Provided "as is", without warranty of any kind; see the
-#   accompanying LICENSE file for full terms. Use at your own risk!
+#     May not be safe for public use; created for the author's benefit.
+#     Provided "as is", without warranty of any kind; see the
+#     accompanying LICENSE file for full terms. Use at your own risk!
 # -----------------------------------------------------------------------------
 
 
-# Message decorations - colored for terminals with NO_COLOR unset
-ERR='✖ Error:' WARN='▲ Warning:'
-[[ -z "${NO_COLOR-}" && -t 1 && "${TERM-}" != dumb ]] \
-  && ERR=$'\e[31m'$ERR$'\e[m' WARN=$'\e[33m'$WARN$'\e[m'
+# Set POSIX locale for consistent byte-wise sorting and pattern matching
+export LC_COLLATE=C
 
+# Message decorations - colored for terminals with NO_COLOR unset
+ERR='✖ Error:' WARN='▲ Warning:' DONE='⚑'
+[[ -z "${NO_COLOR-}" && -t 1 && "${TERM-}" != dumb ]] \
+  && ERR=$'\e[1;31m'$ERR$'\e[m' WARN=$'\e[1;33m'$WARN$'\e[m'
+
+# Check the system character map supports Unicode glyphs
+if [[ "$(locale charmap)" != *UTF-8* ]]; then
+  echo "${WARN} System locale may not support extended UTF-8 characters."
+fi
 # Check the required binaries are available
 for bin in 'magick' 'exiftool' 'oxipng'; do
   if ! command -v "${bin}" &> /dev/null; then
@@ -436,6 +443,6 @@ if [[ "${publish_gallery:-0}" -eq 1 ]]; then
 fi
 
 
-echo '...Finished :)'
+echo " ...Finished! ${DONE}"
 echo ''
 exit 0

@@ -25,23 +25,26 @@
 #     accompanying LICENSE file for full terms. Use at your own risk!
 # -----------------------------------------------------------------------------
 
+# Strict mode: immediately exit on error, an unset variable or pipe failure
+set -euo pipefail
+
 
 # Set POSIX locale for consistent byte-wise sorting and pattern matching
 export LC_COLLATE=C
 
-# Message decorations - colored for terminals with NO_COLOR unset
+# Message decorations - colored for terminals if NO_COLOR is unset
 ERR='✖ Error:' WARN='▲ Warning:' DONE='⚑'
 [[ -z "${NO_COLOR-}" && -t 1 && "${TERM-}" != dumb ]] \
   && ERR=$'\e[1;31m'$ERR$'\e[m' WARN=$'\e[1;33m'$WARN$'\e[m'
 
 # Check the system character map supports Unicode glyphs
 if [[ "$(locale charmap)" != *UTF-8* ]]; then
-  echo "${WARN} System locale may not support extended UTF-8 characters."
+  echo "${WARN} System locale may not support extended UTF-8 characters." >&2
 fi
 # Check the required binaries are available
 for bin in 'magick' 'exiftool' 'oxipng'; do
   if ! command -v "${bin}" &> /dev/null; then
-    echo "${ERR} '${bin}' is not installed or not in your PATH."
+    echo "${ERR} '${bin}' is not installed or not in your PATH." >&2
     exit 1
   fi
 done
@@ -50,18 +53,18 @@ min_ver='9.1.3'
 this_ver="$(oxipng --version | head -n1 | sed 's/^oxipng //')"
 if [[ $(printf '%s\n' "${min_ver}" "${this_ver}" | sort -V | head -n1) \
   != "${min_ver}" ]]; then
-  echo "${ERR} Oxipng v${this_ver}; upgrade to at least v${min_ver}."
+  echo "${ERR} Oxipng v${this_ver}; upgrade to at least v${min_ver}." >&2
   exit 1
 fi
 # Check for at least one input file
-if [[ -z "$1" ]]; then
-  echo "${ERR} Missing filename. Provide at least one PNG image to process."
+if [[ -z "${1:-}" ]]; then
+  echo "${ERR} Missing filename. Provide at least one PNG image to process." >&2
   exit 1
 fi
 
 # Common function for lossless png optimization
 optimize_png() {
-  if [[ -f "$1" ]]; then
+  if [[ -f "${1:-}" ]]; then
     oxipng -q --nx --strip all "$1"
     # First try to optimize with no reductions (8bpp depth preferred)
     #   then allow reductions (lower bit depths and other color modes)
@@ -73,7 +76,7 @@ optimize_png() {
       # Optionally compress with PNGOUT if available
       if command -v 'pngout' &> /dev/null; then
         for level in {0..3}; do
-          pngout -q -ks -kp -f6 -s${level} "$1"
+          pngout -q -ks -kp -f6 -s${level} "$1" || true
         done
       fi
     done
@@ -100,8 +103,8 @@ art_dir=$(realpath "${base_dir}/../art")
 readonly base_dir art_dir
 # Path to supporting data file
 readonly dex_LUT="${base_dir}/dex_table.tsv"
-if [[ ! -f "${dex_LUT}" ]]; then
-  echo "${ERR} Support file '${dex_LUT}' is missing."
+if [[ ! -r "${dex_LUT}" ]]; then
+  echo "${ERR} Support file '${dex_LUT}' is not accessible." >&2
   exit 1
 fi
 # Optional common background image; comment out to remove from image processing
@@ -113,20 +116,20 @@ echo 'Processing images...'
 # -----------------------------------------------------------------------------
 
 
-while (( "$#" )); do
+while [[ "$#" -gt 0 ]]; do
 
   # Minimal checks for the input file
-  if [[ ! -f "${1%.*}.png" || ! -r "$1" ]]; then
-    echo "${ERR} File is not accessible. PNG file required."
+  if [[ ! -r "$1" || ! "$1" =~  \.(png|PNG)$ ]]; then
+    echo "${ERR} A readable PNG file is required." >&2
     exit 1
   fi
   file_size=$(stat -f%z "$1" 2>/dev/null || wc -c <"$1")
   if (( file_size < 10240 || file_size > 1048576 )); then
-    echo "${ERR} File size is outside the allowed range (10 KiB - 1 MiB)."
+    echo "${ERR} File size is outside the allowed range (10 KiB - 1 MiB)." >&2
     exit 1
   fi
   if ! oxipng -q --pretend --nx --nz "$1"; then
-    echo "${ERR} Not a valid PNG file. Check for image format issues."
+    echo "${ERR} Not a valid PNG file. Check for image format issues." >&2
     exit 1
   fi
 
@@ -144,11 +147,11 @@ while (( "$#" )); do
   # Validate the 'mon number first
   if [[ ! "${mon_number}" =~ ^[0-9]{3}$ ]] \
       || (( 10#"${mon_number}" < 1 || 10#"${mon_number}" > 151 )); then
-    echo "${ERR} Invalid number. Expected between 001 and 151, with leading zeroes."
+    echo "${ERR} Expected number between 001 and 151, with leading zeroes." >&2
     exit 1
   fi
-  if [[ ! "${mon_number}" = "$( basename "${1%/*}" )" ]] ; then
-    echo "${ERR} Invalid number. File and its directory name mismatch."
+  if [[ "${mon_number}" != "$( basename "${1%/*}" )" ]] ; then
+    echo "${ERR} Invalid number. File and its directory name mismatch." >&2
     exit 1
   fi
   # Look up properties for this 'mon (and colors used later for gallery artwork)
@@ -164,22 +167,22 @@ while (( "$#" )); do
   dex_name="$(trim_string "${dex_name}")"
   # Validate the other parsed details
   if [[ ! "${mon_name}" =~ ^[A-Z] || ${#mon_name} -lt 3 ]]; then
-    echo "${ERR} Invalid name. Expected TitleCase and at least 3 characters."
+    echo "${ERR} Invalid name. Expected TitleCase and at least 3 characters." >&2
     exit 1
   fi
-  if [[ ! "${mon_name}" =  "${dex_name}" ]]; then
-    echo "${ERR} Invalid name. '${mon_name}' does not match expected '${dex_name}'."
+  if [[ "${mon_name}" !=  "${dex_name}" ]]; then
+    echo "${ERR} Invalid name. '${mon_name}' does not match expected '${dex_name}'." >&2
     exit 1
   fi
   if [[ ! "${mon_sprite}" =~ ^[0-2]$ ]]; then
-    echo "${ERR} Invalid sprite number. Expected 0, 1, or 2 (rest, pose, attack)."
+    echo "${ERR} Invalid sprite number. Expected 0, 1, or 2 (rest, pose, attack)." >&2
     exit 1
   fi
   img_title="${mon_number} ${mon_name} (${mon_sprite})" # e.g. `006 Dragon (1)`
 
   # Begin processing
-  emoji=$(echo "${mon_palette:0:1}" | sed 's/❤/❤️ /') # Fix unicode for red hearts
-  echo " - ${emoji} ${img_name}"
+  emoji="${mon_palette:0:1}"
+  echo " - ${emoji/❤/❤️ } ${img_name}"  # Fix unicode for red hearts
 
 
   # Produce 'mon images
@@ -231,7 +234,7 @@ while (( "$#" )); do
   # Optionally check the extracted bitmap against another reference source
   chk_file="${base_dir}/check_sprites/xchk_${mon_number}-${mon_sprite}.png"
   if [[ ! -f "${chk_file%.*}.png" ]]; then
-    echo "${WARN} Reference image '${chk_file}' not found. No extra checks performed."
+    echo "${WARN} Reference image '${chk_file}' not found. No extra checks performed." >&2
   else
     # Remove any previous 'diff' files if we tested before (clean start)
     if [[ -f "${chk_file}.diff.png" ]]; then
@@ -242,9 +245,9 @@ while (( "$#" )); do
     chk_uid="$(magick "${chk_file}" -sample 30x32 \
       -auto-threshold OTSU -alpha off -depth 1 PBM:- | xxd -p)"
     if [[ "${img_uid}" != "${chk_uid}" ]]; then
-      echo -n "${WARN} Check reference artwork for differences. "
+      echo -n "${WARN} Check reference artwork for differences. " >&2
       magick compare -metric AE "${png_file}" "${chk_file}" \
-        "${chk_file}.diff.png"
+        "${chk_file}.diff.png" || true
       # Flicker animation for comparison
       magick -delay 50 -loop 0 \
         "${chk_file}".diff.png "${chk_file}" "${tmp_file}" \
@@ -268,7 +271,7 @@ while (( "$#" )); do
   optimize_png "${art_file}"
 
   # Create 'mon spritesheet and animated GIF for all 3 frames
-  if [[ "${mon_sprite}" = 2 ]]; then
+  if [[ "${mon_sprite}" -eq 2 ]]; then
     # Check all 3 sprites are present
     spr_base="${art_dir}/png/${mon_number}-${mon_name}"
     if [[ -f "${spr_base}-0.png" \
@@ -331,8 +334,10 @@ while (( "$#" )); do
       -execute \
     "${pbm_file}" -q -overwrite_original -fast5 \
       -Comment="${img_title} - '${project}" # Primary metadata (single line in header)
-  # Extra pbm metadata appended to the end as plain text
-  printf '\n# %s' "${copyright_long}" "${license}" >> "${pbm_file}"
+  # Extra pbm metadata appended to the end of the file as plain text
+  printf '\n# %s' "${copyright_long}" "${license}" \
+    >> "${pbm_file}" \
+    || { echo "${ERR} Failed writing to file: '${pbm_file}'." >&2; exit 1; }
 
 
   # Remove temporary image file
@@ -353,7 +358,7 @@ if [[ "${publish_sprites:-0}" -eq 1 || "${publish_gallery:-0}" -eq 1 ]]; then
   dex=()  # Create an array for file names
   while IFS=$'\t' read -r dex_number dex_name _; do
     # Skip the first row (header)
-    if [[ -z "$dex_number" ]]; then
+    if [[ -z "${dex_number:-}" ]]; then
       continue
     fi
     dex_number="$(trim_string "${dex_number}")"

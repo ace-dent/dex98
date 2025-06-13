@@ -15,9 +15,10 @@ Purchase EU Device: 0% [|-------------------] £0 / £50
 
 ## Expenses
 
-| Date        | £ GBP    | $ USD    | Item                                    |
-| :---------- | -------: | -------: | :-------------------------------------- |
-| 14-Mar-2025 | £18.99   | $24.00   | 2x Broken 'dex (en-GB_99), for spares.  |
-| 08-Mar-2025 | £30.00   | $38.08   | Domain name registration.               |
-| 15-Dec-2024 | £63.50   | $81.00   | Good condition 'dex (en-GB_99).         |
-| **TOTAL**   | **£112** | **$143** |                                         |
+| Date       | £ GBP    | $ USD    | Item                                   |
+| :--------- | -------: | -------: | :------------------------------------- |
+| 2025-06-13 | £18.74   | $25.00   | Poor condition 'dex (en-US_98).        |
+| 2025-03-14 | £18.99   | $24.00   | 2x Broken 'dex (en-GB_99), for spares. |
+| 2025-03-08 | £30.00   | $38.08   | Domain name registration.              |
+| 2024-12-15 | £63.50   | $81.00   | Good condition 'dex (en-GB_99).        |
+| **TOTAL**  | **£131** | **$168** |                                        |

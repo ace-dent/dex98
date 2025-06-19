@@ -94,7 +94,7 @@ trim_string() {
 # Standard metadata for images
 readonly project='dex98.com'
 readonly copyright='Public Domain by ACED, licensed under CC0.'
-readonly copyright_long="This work is dedicated to the ${copyright}"
+readonly copyright_long="Dedicated to the ${copyright}"
 readonly license='https://creativecommons.org/publicdomain/zero/1.0/'
 
 # Setup file paths
@@ -215,7 +215,8 @@ while [[ "$#" -gt 0 ]]; do
 
   # Create the Portable Bit Map (PBM) as an archival copy
   pbm_file="${art_dir}/pbm/${img_name}.pbm"
-  magick "${png_file}" -depth 1 -compress None "${pbm_file}"
+  magick "${png_file}" -depth 1 -compress None pbm:- \
+    | sed 's/[[:space:]]*$//' > "${pbm_file}" # Strip trailing whitespace
 
   # Create 'diff' images for manual inspection and Quality Control
   diff_file="${art_dir}/png/diff.${img_name}"

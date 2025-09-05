@@ -28,19 +28,33 @@
 # Strict mode: immediately exit on error, an unset variable or pipe failure
 set -euo pipefail
 
-
-# Set POSIX locale for consistent byte-wise sorting and pattern matching
-export LC_COLLATE=C
-
 # Message decorations - colored for terminals if NO_COLOR is unset
 ERR='✖ Error:' WARN='▲ Warning:' DONE='⚑'
 [[ -z "${NO_COLOR-}" && -t 1 && "${TERM-}" != dumb ]] \
   && ERR=$'\e[1;31m'$ERR$'\e[m' WARN=$'\e[1;33m'$WARN$'\e[m'
 
+# Set POSIX locale for consistent byte-wise sorting and pattern matching
+export LC_COLLATE=C
 # Check the system character map supports Unicode glyphs
 if [[ "$(locale charmap)" != *UTF-8* ]]; then
   echo "${WARN} System locale may not support extended UTF-8 characters." >&2
 fi
+
+# Create directory for temporary files
+if ! tmp_dir="$(mktemp -d -t dex98)"; then
+  echo "${ERR} Failed to create temporary directory." >&2
+  exit 1
+fi
+readonly tmp_dir
+# Remove the temporary directory and any contained files on exit
+cleanup() {
+  rm -rf -- "${tmp_dir}"
+  if [[ -d "${tmp_dir}" ]]; then
+    echo "${WARN} Failed to remove temporary files in ${tmp_dir}" >&2
+  fi
+}
+trap cleanup EXIT INT TERM HUP
+
 # Check the required binaries are available
 for bin in 'magick' 'exiftool' 'oxipng'; do
   if ! command -v "${bin}" &> /dev/null; then
@@ -64,19 +78,20 @@ fi
 
 # Common function for lossless png optimization
 optimize_png() {
-  if [[ -f "${1:-}" ]]; then
-    oxipng -q --nx --strip all "$1"
+  local png_file="${1:-}"
+  if [[ -f "${png_file}" ]]; then
+    oxipng -q --nx --strip all "${png_file}"
     # First try to optimize with no reductions (8bpp depth preferred)
     #   then allow reductions (lower bit depths and other color modes)
     for reductions in '--nx -q' '-q'; do
       for level in {0..12}; do
-        oxipng ${reductions} --zc ${level} --filters 0-9 "$1"
+        oxipng ${reductions} --zc ${level} --filters 0-9 "${png_file}"
       done
-      oxipng ${reductions} --zopfli --zi 255 --filters 0-9 "$1"
+      oxipng ${reductions} --zopfli --zi 255 --filters 0-9 "${png_file}"
       # Optionally compress with PNGOUT if available
       if command -v 'pngout' &> /dev/null; then
         for level in {0..3}; do
-          pngout -q -ks -kp -f6 -s${level} "$1" || true
+          pngout -q -ks -kp -f6 -s${level} "${png_file}" || true
         done
       fi
     done
@@ -85,9 +100,10 @@ optimize_png() {
 
 # Common function to remove whitespace around strings
 trim_string() {
-    local trimmed="${1#"${1%%[![:space:]]*}"}"
-    trimmed="${trimmed%"${trimmed##*[![:space:]]}"}"
-    printf '%s' "${trimmed}"
+  local s="${1:-}" lead trail
+  lead="${s%%[![:space:]]*}"; s=${s#"$lead"}
+  trail="${s##*[![:space:]]}"; s=${s%"$trail"}
+  printf '%s' "${s}"
 }
 
 
@@ -107,8 +123,18 @@ if [[ ! -r "${dex_LUT}" ]]; then
   echo "${ERR} Support file '${dex_LUT}' is not accessible." >&2
   exit 1
 fi
+
 # Optional common background image; comment out to remove from image processing
-readonly img_background="${base_dir}/img_background.png"
+img_background="${base_dir}/img_background.png"
+remove_background=()
+if [[ -f "${img_background}" ]]; then
+  remove_background=(
+    "$img_background"
+    -compose Mathematics -define 'compose:args=1,-0.8,0,0.5' -composite
+  ) # ImageMagick parameters subtract background to improve image segmentation
+fi
+readonly remove_background
+
 
 echo ''
 echo 'Processing images...'
@@ -116,14 +142,14 @@ echo 'Processing images...'
 # -----------------------------------------------------------------------------
 
 
-while [[ "$#" -gt 0 ]]; do
+while (( "$#" > 0 )); do
 
   # Minimal checks for the input file
   if [[ ! -r "$1" || ! "$1" =~  \.(png|PNG)$ ]]; then
     echo "${ERR} A readable PNG file is required." >&2
     exit 1
   fi
-  file_size=$(stat -f%z "$1" 2>/dev/null || wc -c <"$1")
+  file_size=$(stat -f%z "$1" 2>/dev/null || wc -c <"$1" || echo 0)
   if (( file_size < 10240 || file_size > 1048576 )); then
     echo "${ERR} File size is outside the allowed range (10 KiB - 1 MiB)." >&2
     exit 1
@@ -141,7 +167,7 @@ while [[ "$#" -gt 0 ]]; do
   img_name="$( basename -s .png "$1" )" # e.g. `006-Dragon-1`
   img_name="${img_name/_corrected/}" # Remove possible '_corrected' suffix
   # Sanitize the string, accepting edge cases: `Pin♀/♂` , `Duck'd`, `Mr. X`
-  img_name="$(echo "${img_name}" | tr -c "a-zA-Z0-9♀♂'. -\n" '?')"
+  img_name="${img_name//[^A-Za-z0-9♀♂.\' $'\n'-]/?}"
   # Split the hyphenated string into separate elements
   IFS='-' read -r mon_number mon_name mon_sprite <<< "${img_name}"
   # Validate the 'mon number first
@@ -189,25 +215,17 @@ while [[ "$#" -gt 0 ]]; do
   # ---------------------------------------------------------------------------
 
   # Preprocess 'temp' image (reused), tweaking morphology to close pixel gaps
-  tmp_file="${art_dir}/png/${img_name}-temp.png"
+  tmp_file="${tmp_dir}/${img_name}-temp.png"
   img_width="$(magick identify -format '%w' "$1")"
   kernel=$(( img_width > 480 ? 4 : 2 ))
   magick "$1" -negate -morphology Dilate Disk:${kernel} \
     -morphology Erode Disk:$((kernel/2)) -negate \
     -sample 480x512 "${tmp_file}"
-  # Subtract a common image background (if given), to improve pixel detection
-  subtract_background_operation=()
-  if [[ -f "${img_background}" ]]; then
-    subtract_background_operation=(
-      "${img_background}"
-      -compose Mathematics -define compose:args=1,-0.8,0,0.5 -composite
-    )
-  fi
 
   # Produce canonical bitmap (png), extracted from the input photograph
   png_file="${art_dir}/png/${img_name}.png"
   magick -colorspace gray -depth 8 "${tmp_file}" \
-    "${subtract_background_operation[@]}" \
+    "${remove_background[@]}" \
     -auto-threshold OTSU -alpha off -sample 30x32 \
     -define png:color-type=0 -define png:bit-depth=8 -define png:include-chunk=none \
     "${png_file}"
@@ -239,7 +257,7 @@ while [[ "$#" -gt 0 ]]; do
   else
     # Remove any previous 'diff' files if we tested before (clean start)
     if [[ -f "${chk_file}.diff.png" ]]; then
-      rm -f "${chk_file}.diff.png" "${chk_file}.diff.gif"
+      rm -f -- "${chk_file}.diff.png" "${chk_file}.diff.gif"
     fi
     # Generate Unique ID for the images; a string of 240 hexadecimal characters
     img_uid="$(magick "${png_file}" -depth 1 PBM:- | xxd -p)"
@@ -341,11 +359,9 @@ while [[ "$#" -gt 0 ]]; do
     || { echo "${ERR} Failed writing to file: '${pbm_file}'." >&2; exit 1; }
 
 
-  # Remove temporary image file
-  rm -f "${tmp_file}"
-
   # Move to next image file provided
   shift
+
 done
 
 
@@ -400,6 +416,7 @@ if [[ "${publish_gallery:-0}" -eq 1 ]]; then
   echo ' - Generating main gallery image...'
   gallery_dir="${art_dir%/*}/docs/gallery/"
   gallery_img="${gallery_dir}GALLERY"
+  gallery_tmp="${tmp_dir}/GALLERY"
   # Insert placeholder images to improve 6 column alignment, minimizing
   #   row breaks between related 'mon.
   dex=( "${dex[@]:0:47}" '998-Placeholder' "${dex[@]:48}")
@@ -413,7 +430,7 @@ if [[ "${publish_gallery:-0}" -eq 1 ]]; then
     done
     magick montage "${gallery_files[@]}" \
       -tile 6x26 -geometry +0+0 \
-      "${gallery_img}-${frame}.png"
+      "${gallery_tmp}-${frame}.png"
     # Create footer row featuring: 150, logo (centered), 151.
     canvas_color="#D8D6D0" # Lightest yellow (border color)
     magick -size 612x108 canvas:"${canvas_color}" \
@@ -421,17 +438,17 @@ if [[ "${publish_gallery:-0}" -eq 1 ]]; then
       "${gallery_dir}${dex[151]}-${frame}.png" -geometry +510+0 -composite \
       "${gallery_dir}000-Logo.png" -gravity center -composite \
       -write mpr:gallery_footer +delete \
-      "${gallery_img}-${frame}.png" mpr:gallery_footer -append \
-      "${gallery_img}-${frame}.png"
+      "${gallery_tmp}-${frame}.png" mpr:gallery_footer -append \
+      "${gallery_tmp}-${frame}.png"
   done
 
   magick -loop 0 \
-    \( "${gallery_img}-0.png" "${gallery_img}-1.png" \
+    \( "${gallery_tmp}-0.png" "${gallery_tmp}-1.png" \
       -write mpr:posing_cycle -delete 0--1 \) \
-    \( "${gallery_img}-0.png" "${gallery_img}-2.png" \
+    \( "${gallery_tmp}-0.png" "${gallery_tmp}-2.png" \
       -write mpr:attack_cycle -delete 0--1 \) \
     \
-    -delay 1029 "${gallery_img}-0.png" -delay 49 \
+    -delay 1029 "${gallery_tmp}-0.png" -delay 49 \
     mpr:posing_cycle mpr:posing_cycle \
     mpr:attack_cycle mpr:attack_cycle \
     mpr:posing_cycle mpr:posing_cycle \
@@ -444,8 +461,6 @@ if [[ "${publish_gallery:-0}" -eq 1 ]]; then
     -Comment="'${project} - ${copyright} ${license}"
   # flexigif -p -f -a=30 "${gallery_img}.gif" "${gallery_img}-optim30.gif"
   open "${gallery_img}.gif"
-  # Remove temporary image files
-  rm -f "${gallery_img}-0.png" "${gallery_img}-1.png" "${gallery_img}-2.png"
 fi
 
 

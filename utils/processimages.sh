@@ -127,13 +127,12 @@ fi
 # Optional common background image; comment out to remove from image processing
 img_background="${base_dir}/img_background.png"
 remove_background=()
-if [[ -f "${img_background}" ]]; then
-  remove_background=(
-    "$img_background"
-    -compose Mathematics -define 'compose:args=1,-0.8,0,0.5' -composite
-  ) # ImageMagick parameters subtract background to improve image segmentation
+if [[ -n "${img_background-}" && -f "${img_background}" ]]; then
+  remove_background=( "$img_background" -compose Mathematics
+  -define 'compose:args=1,-0.8,0,0.5' -composite )
+  # ImageMagick parameters subtract background to improve image segmentation
 fi
-readonly remove_background
+readonly -a remove_background
 
 
 echo ''
@@ -225,7 +224,7 @@ while (( "$#" > 0 )); do
   # Produce canonical bitmap (png), extracted from the input photograph
   png_file="${art_dir}/png/${img_name}.png"
   magick -colorspace gray -depth 8 "${tmp_file}" \
-    "${remove_background[@]}" \
+    ${remove_background+"${remove_background[@]}"} \
     -auto-threshold OTSU -alpha off -sample 30x32 \
     -define png:color-type=0 -define png:bit-depth=8 -define png:include-chunk=none \
     "${png_file}"

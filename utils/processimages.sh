@@ -124,13 +124,13 @@ if [[ ! -r "${dex_LUT}" ]]; then
   exit 1
 fi
 
-# Optional common background image; comment out to remove from image processing
+# Optional common background image; unset to remove from image processing
 img_background="${base_dir}/img_background.png"
 remove_background=()
 if [[ -n "${img_background-}" && -f "${img_background}" ]]; then
-  remove_background=( "$img_background" -compose Mathematics
-  -define 'compose:args=1,-0.8,0,0.5' -composite )
   # ImageMagick parameters subtract background to improve image segmentation
+  remove_background=( "$img_background" -compose Mathematics
+    -define 'compose:args=1,-0.8,0,0.5' -composite )
 fi
 readonly -a remove_background
 
@@ -351,7 +351,7 @@ while (( "$#" > 0 )); do
       -xresolution=23 -yresolution=25 -resolutionunit=inches \
       -execute \
     "${pbm_file}" -q -overwrite_original -fast5 \
-      -Comment="${img_title} - '${project}" # Primary metadata (single line in header)
+      -Comment="${img_title} - '${project}" # Primary metadata in pbm header
   # Extra pbm metadata appended to the end of the file as plain text
   printf '\n# %s' "${copyright_long}" "${license}" \
     >> "${pbm_file}" \
@@ -364,10 +364,13 @@ while (( "$#" > 0 )); do
 done
 
 
+# Produce combined spritesheet and/or gallery (optional)
+# -----------------------------------------------------------------------------
+
 publish_sprites=0
 publish_gallery=0
-# For publishing final release files, set to true (1)
-#   Disabled by default (0), as image optimization steps are quite slow
+# For publishing final release files, set =1 (true)
+#   Disabled by default (=0), as image optimization steps are quite slow
 
 
 if [[ "${publish_sprites:-0}" -eq 1 || "${publish_gallery:-0}" -eq 1 ]]; then
@@ -462,6 +465,8 @@ if [[ "${publish_gallery:-0}" -eq 1 ]]; then
   open "${gallery_img}.gif"
 fi
 
+
+# -----------------------------------------------------------------------------
 
 echo " ...Finished! ${DONE}"
 echo ''

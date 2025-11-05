@@ -266,6 +266,7 @@ while (( "$#" > 0 )); do
       echo -n "${WARN} Check reference artwork for differences. " >&2
       magick compare -metric AE "${png_file}" "${chk_file}" \
         "${chk_file}.diff.png" || true
+      echo '' >&2
       # Flicker animation for comparison
       magick -delay 50 -loop 0 \
         "${chk_file}".diff.png "${chk_file}" "${tmp_file}" \
@@ -273,7 +274,6 @@ while (( "$#" > 0 )); do
         -sample 480x512 -gravity center \
         -dither None -colors 256 "${chk_file}".diff.gif
       open "${chk_file}".diff.gif
-      echo ''
     fi
   fi
 
@@ -394,11 +394,11 @@ if [[ "${publish_sprites:-0}" -eq 1 ]]; then
   # Combine individual 'mon spritesheets (3x1) into main spritesheet (3x151)
   echo ' - Generating main spritesheet...'
   sprites_dir="${art_dir%}/png/"
-  spritesheet_img="${sprites_dir}SPRITESHEET.png"
+  spritesheet_img="${art_dir%}/SPRITESHEET.png"
   sprite_files=()
   for file in "${dex[@]}"; do
-      # Array of filepaths for spritesheets
-      sprite_files+=("${sprites_dir}${file}.png")
+    # Array of filepaths for spritesheets
+    sprite_files+=("${sprites_dir}${file}.png")
   done
   magick montage -colorspace gray -depth 8 \
     "${sprite_files[@]}" \

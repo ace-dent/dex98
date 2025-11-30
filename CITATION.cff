@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+title: dex98
+message: >-
+  If you use this dataset, please cite it using the metadata from this file.
+type: dataset
+authors:
+  - given-names: Andrew C E
+    family-names: Dent
+    email: hi@aced.cafe
+    orcid: 'https://orcid.org/0009-0000-7116-2494'
+repository-code: 'https://github.com/ace-dent/dex98'
+url: 'https://www.dex98.com'
+abstract: >-
+  Recreation of assets from the Tiger 1998 Pokedex (Generation 1).
+keywords:
+  - pokemon
+  - pokedex
+  - nintendo
+  - tiger-electronics
+  - '1998'
+license: CC0-1.0
+version: '0.1'
+date-released: '2025-11-30'

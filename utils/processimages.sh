@@ -21,7 +21,7 @@
 #
 # WARNING:
 #     May not be safe for public use; created for the author's benefit.
-#     Provided "as is", without warranty of any kind; see the
+#     Provided "as is", without warranty of any kind. See the
 #     accompanying LICENSE file for full terms. Use at your own risk!
 # -----------------------------------------------------------------------------
 
@@ -115,18 +115,22 @@ readonly copyright_long="Dedicated to the ${copyright}"
 readonly license='https://creativecommons.org/publicdomain/zero/1.0/'
 
 # Setup file paths
-base_dir=$(realpath "$(dirname "${BASH_SOURCE[0]}")")
-art_dir=$(realpath "${base_dir}/../art")
-readonly base_dir art_dir
+root_dir="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
+art_dir="${root_dir}/art"
+readonly root_dir art_dir
+if [[ ! -d "${art_dir}" ]]; then
+  echo "${ERR} Project './art' directory was not found." >&2
+  exit 1
+fi
 # Path to supporting data file
-readonly dex_LUT="${base_dir}/dex_table.tsv"
+readonly dex_LUT="${root_dir}/utils/dex_table.tsv"
 if [[ ! -r "${dex_LUT}" ]]; then
   echo "${ERR} Support file '${dex_LUT}' is not accessible." >&2
   exit 1
 fi
 
 # Optional common background image; unset to remove from image processing
-img_background="${base_dir}/img_background.png"
+img_background="${root_dir}/utils/img_background.png"
 remove_background=()
 if [[ -n "${img_background-}" && -f "${img_background}" ]]; then
   # ImageMagick parameters subtract background to improve image segmentation
@@ -251,7 +255,7 @@ while (( "$#" > 0 )); do
     -dither FloydSteinberg -colors 256 "${diff_file}".gif
 
   # Optionally check the extracted bitmap against another reference source
-  chk_file="${base_dir}/check_sprites/xchk_${mon_number}-${mon_sprite}.png"
+  chk_file="${root_dir}/utils/check_sprites/xchk_${mon_number}-${mon_sprite}.png"
   if [[ ! -f "${chk_file%.*}.png" ]]; then
     echo "${WARN} Reference image '${chk_file}' not found. No extra checks performed." >&2
   else

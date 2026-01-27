@@ -9,4 +9,7 @@ ehthumbs_vista.db
 ._*
 
 ### Project files ###
-# *diff.*
+*diff.*
+*.ods
+art/src/
+utils/check_sprites/

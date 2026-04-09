@@ -30,7 +30,7 @@ set -euo pipefail
 
 # Message decorations - colored for terminals if NO_COLOR is unset
 ERR='✖ Error:' WARN='▲ Warning:' DONE='⚑'
-[[ -z "${NO_COLOR-}" && -t 1 && "${TERM-}" != dumb ]] \
+[[ -z "${NO_COLOR-}" && -t 2 && "${TERM-}" != dumb ]] \
   && ERR=$'\e[1;31m'$ERR$'\e[m' WARN=$'\e[1;33m'$WARN$'\e[m'
 
 # Set POSIX locale for consistent byte-wise sorting and pattern matching
@@ -50,7 +50,7 @@ readonly tmp_dir
 cleanup() {
   rm -rf -- "${tmp_dir}"
   if [[ -d "${tmp_dir}" ]]; then
-    echo "${WARN} Failed to remove temporary files in ${tmp_dir}" >&2
+    echo "${WARN} Failed to remove temporary files in ${tmp_dir}." >&2
   fi
 }
 trap cleanup EXIT INT TERM HUP
@@ -63,11 +63,8 @@ for bin in 'magick' 'exiftool' 'oxipng'; do
   fi
 done
 # Check Oxipng is v10 or greater (for Zopfli iterations `--ziwi`)
-min_ver='10.0.0'
-this_ver="$(oxipng --version | head -n1 | sed 's/^oxipng //')"
-if [[ $(printf '%s\n' "${min_ver}" "${this_ver}" | sort -V | head -n1) \
-  != "${min_ver}" ]]; then
-  echo "${ERR} Oxipng v${this_ver}; upgrade to at least v${min_ver}." >&2
+if ! [[ "$(oxipng --help 2>&1)" == *--ziwi* ]]; then
+  echo "${ERR} Upgrade oxipng to version 10.0.0 or greater." >&2
   exit 1
 fi
 # Check for at least one input file
@@ -140,26 +137,26 @@ fi
 readonly -a remove_background
 
 
-echo ''
+echo
 echo 'Processing images...'
 
 # -----------------------------------------------------------------------------
 
 
-while (( "$#" > 0 )); do
+while (( $# > 0 )); do
 
   # Minimal checks for the input file
   if [[ ! -r "$1" || ! "$1" =~  \.(png|PNG)$ ]]; then
     echo "${ERR} A readable PNG file is required." >&2
     exit 1
   fi
-  file_size=$(stat -f%z "$1" 2>/dev/null || wc -c <"$1" || echo 0)
+  declare -i file_size=$(stat -f%z "$1" 2>/dev/null || wc -c <"$1")
   if (( file_size < 10240 || file_size > 1048576 )); then
     echo "${ERR} File size is outside the allowed range (10 KiB - 1 MiB)." >&2
     exit 1
   fi
   if ! oxipng -q --dry-run --nx --nz --max-raw-size 10MB "$1"; then
-    echo "${ERR} Not a valid PNG file. Check for image format issues." >&2
+    echo "${ERR} Not a valid PNG file. Check image format." >&2
     exit 1
   fi
 
@@ -184,7 +181,7 @@ while (( "$#" > 0 )); do
     echo "${ERR} Invalid number. File and its directory name mismatch." >&2
     exit 1
   fi
-  # Look up properties for this 'mon (and colors used later for gallery artwork)
+  # Look up properties for this 'mon (and colors for gallery artwork)
   line_number=$(( 10#${mon_number} + 1 ))
   row=$(sed -n "${line_number}p" "${dex_LUT}")
   IFS=$'\t' read -r _ dex_name mon_palette _ _ art_white art_border art_black \
@@ -271,7 +268,7 @@ while (( "$#" > 0 )); do
       echo -n "${WARN} Check reference artwork for differences. " >&2
       magick compare -metric AE "${png_file}" "${chk_file}" \
         "${chk_file}.diff.png" || true
-      echo '' >&2
+      echo >&2
       # Flicker animation for comparison
       magick -delay 50 -loop 0 \
         "${chk_file}".diff.png "${chk_file}" "${tmp_file}" \
@@ -294,7 +291,7 @@ while (( "$#" > 0 )); do
   optimize_png "${art_file}"
 
   # Create 'mon spritesheet and animated GIF for all 3 frames
-  if [[ "${mon_sprite}" -eq 2 ]]; then
+  if (( mon_sprite == 2 )); then
     # Check all 3 sprites are present
     spr_base="${art_dir}/png/${mon_number}-${mon_name}"
     if [[ -f "${spr_base}-0.png" \
@@ -339,7 +336,7 @@ while (( "$#" > 0 )); do
         # Single-threaded LZW optimizer is slow, so runs as a background task
         nohup bash -c "{ \
           flexigif -q -p -f -a=1 "${art_base}.gif" "${art_base}-o1.gif"; \
-          mv "${art_base}-o1.gif" "${art_base}.gif"; \
+          mv -- "${art_base}-o1.gif" "${art_base}.gif"; \
         }" > /dev/null 2>&1 &
       fi
     fi
@@ -372,13 +369,15 @@ done
 # Produce combined spritesheet and/or gallery (optional)
 # -----------------------------------------------------------------------------
 
-publish_sprites=0
-publish_gallery=0
+declare -i publish_sprites=0
+declare -i publish_gallery=0
 # For publishing final release files, set =1 (true)
 #   Disabled by default (=0), as image optimization steps are quite slow
+[[ "${publish_sprites:-0}" == "1" ]] || publish_sprites=0
+[[ "${publish_gallery:-0}" == "1" ]] || publish_gallery=0
 
 
-if [[ "${publish_sprites:-0}" -eq 1 || "${publish_gallery:-0}" -eq 1 ]]; then
+if (( publish_sprites || publish_gallery )); then
   dex=()  # Create an array for file names
   while IFS=$'\t' read -r dex_number dex_name _; do
     # Skip the first row (header)
@@ -395,7 +394,7 @@ if [[ "${publish_sprites:-0}" -eq 1 || "${publish_gallery:-0}" -eq 1 ]]; then
 fi
 
 
-if [[ "${publish_sprites:-0}" -eq 1 ]]; then
+if (( publish_sprites )); then
   # Combine individual 'mon spritesheets (3x1) into main spritesheet (3x151)
   echo ' - Generating main spritesheet...'
   sprites_dir="${art_dir%}/png/"
@@ -418,7 +417,7 @@ if [[ "${publish_sprites:-0}" -eq 1 ]]; then
 fi
 
 
-if [[ "${publish_gallery:-0}" -eq 1 ]]; then
+if (( publish_gallery )); then
   # Produce main animated GIF gallery image
   echo ' - Generating main gallery image...'
   gallery_dir="${art_dir%/*}/docs/gallery/"
@@ -474,5 +473,5 @@ fi
 # -----------------------------------------------------------------------------
 
 echo " ...Finished! ${DONE}"
-echo ''
+echo
 exit 0

@@ -19,13 +19,9 @@ Where possible, keep the diff limited to files and lines directly relevant to th
 
 AI tools may be used to assist with contributions, but contributors remain fully responsible for everything they submit.
 
-Review and understand all AI-generated code, documentation, tests, and comments before including them in a Pull Request. Do not submit generated changes blindly. Check that the contribution is correct, necessary, consistent with the existing codebase, and covered by appropriate tests.
+Review and understand all AI-generated code, documentation, tests, and comments before submitting. Check that the contribution is correct, necessary, consistent with the existing codebase, and covered by appropriate tests.
 
-Keep AI-assisted changes focused and minimal. Avoid large rewrites, speculative refactoring, excessive comments, or unrelated changes introduced by an AI tool.
-
-Do not provide private, confidential, copyrighted, or otherwise restricted project material to external AI services unless you have permission to do so.
-
-Where AI assistance was substantial, please mention this in the Pull Request description and briefly describe how it was used.
+Keep AI-assisted changes focused and minimal. Avoid large rewrites, speculative refactoring, excessive comments, or unrelated changes introduced by an AI tool. Where AI assistance was substantial, please mention this and briefly describe how it was used.
 
 ## Contributor License Agreement (CLA)
 
@@ -38,7 +34,7 @@ By submitting content to this project, you agree that:
 5. **Database rights (if applicable).** To the extent your submission is protected by database rights (including _sui generis_ database rights), you grant the project owner the same license over those rights.
 6. **Patent license (if applicable).** If your submission is or may be covered by patents you control, you grant the project owner a perpetual, worldwide, irrevocable, non-exclusive, royalty-free patent license to make, have made, use, offer for sale, sell, import, and otherwise exploit the submission.
 7. **No compensation; no control.** You waive any claim to compensation for your submission and agree you will not assert claims to control the project owner’s use or licensing of it consistent with this CLA.
-8. **Public project license.** You understand that the project is currently shared publicly under the [MIT](../LICENSE) license, and that the project owner may also offer the project (including your submission) under different licenses now or in the future.
+8. **Public project license.** You understand that the project is currently shared publicly under the [CC0-1.0](../LICENSE) license, and that the project owner may also offer the project (including your submission) under different licenses now or in the future.
 
 
 ## Code of Conduct
